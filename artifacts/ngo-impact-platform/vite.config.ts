@@ -27,9 +27,28 @@ if (!basePath) {
   );
 }
 
+const htmlEntryPlugin = {
+  name: 'html-entry',
+  transformIndexHtml: {
+    order: 'pre' as const,
+    handler() {
+      return {
+        tags: [
+          {
+            tag: 'script',
+            attrs: { type: 'module', src: '/src/main.tsx' },
+            injectTo: 'body',
+          },
+        ],
+      };
+    },
+  },
+};
+
 export default defineConfig({
   base: basePath,
   plugins: [
+    htmlEntryPlugin,
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
