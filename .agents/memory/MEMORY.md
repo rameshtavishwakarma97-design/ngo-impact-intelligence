@@ -1,1 +1,2 @@
 - [PRD completion verification](completion-verification.md) — require an executable PRD matrix plus clean desktop/mobile runtime checks before claiming completion.
+- [GitHub HTML publishing](github-html-publishing.md) — connector writes may reject decoded script-tag HTML; keep Vite entries script-free and inject modules in a pre transform.
