@@ -1,0 +1,1 @@
+- [PRD completion verification](completion-verification.md) — require an executable PRD matrix plus clean desktop/mobile runtime checks before claiming completion.
