@@ -1,0 +1,605 @@
+@import "tailwindcss";
+
+@theme {
+  /* Dynamic CSS Variable Mappings for Tailwind */
+  --color-canvas-khadi: var(--canvas-khadi);
+  --color-surface-ivory: var(--surface-ivory);
+  --color-surface-sidebar: var(--surface-sidebar);
+  --color-border-sand: var(--border-sand);
+  
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  
+  --color-bajaj-blue: var(--bajaj-blue);
+  --color-bajaj-blue-hover: var(--bajaj-blue-hover);
+  --color-bajaj-blue-tint: var(--bajaj-blue-tint);
+  
+  --color-impact-moss: var(--impact-moss);
+  --color-impact-moss-hover: var(--impact-moss-hover);
+  --color-impact-moss-tint: var(--impact-moss-tint);
+  
+  --color-earth-terracotta: var(--earth-terracotta);
+  --color-earth-terracotta-tint: var(--earth-terracotta-tint);
+  
+  --color-caution-ochre: var(--caution-ochre);
+  --color-caution-ochre-tint: var(--caution-ochre-tint);
+  
+  --color-risk-crimson: var(--risk-crimson);
+  --color-risk-crimson-tint: var(--risk-crimson-tint);
+
+  /* Legacy variable mappings for backward compatibility */
+  --color-bg-page: var(--bg-page);
+  --color-bg-sidebar: var(--bg-sidebar);
+  --color-surface-card: var(--surface-card);
+  --color-surface-card-hover: var(--surface-card-hover);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-tag: var(--surface-tag);
+  --color-border-hairline: var(--border-hairline);
+  --color-border-visible: var(--border-visible);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-glow: var(--accent-glow);
+  
+  --color-status-green: var(--green);
+  --color-status-amber: var(--gold);
+  --color-status-red: var(--red);
+
+  /* Fonts */
+  --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-narrative: 'Newsreader', Georgia, serif;
+  --font-mono: 'Plus Jakarta Sans', -apple-system, sans-serif;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* DUAL THEME DESIGN TOKENS (DARK & LIGHT)                       */
+/* ───────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  --bg-page: #0B0D14;
+  --bg-sidebar: #07090E;
+  --surface-card: #131722;
+  --surface-card-hover: #181E2C;
+  --surface-raised: #1C2333;
+  --surface-tag: #242D40;
+  
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --border-visible: rgba(255, 255, 255, 0.16);
+  
+  --text-primary: #FFFFFF;
+  --text-secondary: #9DA7BC;
+  --text-muted: #64748B;
+  
+  --accent: #3B82F6;
+  --accent-hover: #60A5FA;
+  --accent-glow: rgba(59, 130, 246, 0.18);
+  
+  --green: #2E6B4E;
+  --green-subtle: rgba(46, 107, 78, 0.16);
+  --gold: #F59E0B;
+  --gold-subtle: rgba(245, 158, 11, 0.15);
+  --red: #EF4444;
+  --red-subtle: rgba(239, 68, 68, 0.16);
+
+  --chart-grid: rgba(255, 255, 255, 0.05);
+  --chart-line: #3B82F6;
+  --chart-control: #64748B;
+  --chart-area-start: rgba(59, 130, 246, 0.35);
+  --chart-area-end: rgba(59, 130, 246, 0.0);
+
+  /* Concentric Radius Scale (Unslop) */
+  --r-panel: 22px;
+  --r-card: 18px;
+  --r-control: 10px;
+  --r-element: 6px;
+  --r-pill: 999px;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* MOBILE VIEWPORT, TOUCH & ACCESSIBILITY GUARDRAILS             */
+/* ───────────────────────────────────────────────────────────── */
+
+html, body, #root {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent auto-zoom on iOS Safari when focusing inputs */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Scrollbar utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area inset utilities */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+/* Enhanced touch-friendly slider thumbs */
+input[type="range"]::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+[data-theme="light"] {
+  /* Canonical Semantic Tokens (Bajaj Institutional Trust & Botanical Moss) */
+  --canvas-khadi: #F6F3EC;
+  --surface-ivory: #FCFBF8;
+  --surface-sidebar: #EEEAE0;
+  --border-sand: #E3DDD0;
+  
+  --ink-primary: #181D24;
+  --ink-secondary: #48443D;
+  --ink-muted: #646058;
+  
+  --bajaj-blue: #0B4A7D;
+  --bajaj-blue-hover: #083A63;
+  --bajaj-blue-tint: #E7F0F7;
+  --bajaj-blue-glow: rgba(11, 74, 125, 0.15);
+  --bajaj-blue-ring: rgba(11, 74, 125, 0.25);
+  
+  --impact-moss: #2E6B4E;
+  --impact-moss-hover: #24553E;
+  --impact-moss-tint: #E8F3EC;
+  
+  --earth-terracotta: #B5532A;
+  --earth-terracotta-tint: #FAEDE6;
+  
+  --caution-ochre: #A86414;
+  --caution-ochre-tint: #FDF4E3;
+  
+  --risk-crimson: #B42318;
+  --risk-crimson-tint: #FCECEB;
+
+  /* Theme mappings */
+  --bg-page: var(--canvas-khadi);
+  --bg-sidebar: var(--surface-sidebar);
+  --surface-card: var(--surface-ivory);
+  --surface-card-hover: #F2EFE8;
+  --surface-raised: #EFECE3;
+  --surface-tag: #E5DFD3;
+  
+  --border-hairline: var(--border-sand);
+  --border-visible: #D5CEC0;
+  
+  --text-primary: var(--ink-primary);
+  --text-secondary: var(--ink-secondary);
+  --text-muted: var(--ink-muted);
+  
+  --accent: var(--bajaj-blue);
+  --accent-hover: var(--bajaj-blue-hover);
+  --accent-glow: var(--bajaj-blue-glow);
+  
+  --green: var(--impact-moss);
+  --green-subtle: var(--impact-moss-tint);
+  --gold: var(--caution-ochre);
+  --gold-subtle: var(--caution-ochre-tint);
+  --red: var(--risk-crimson);
+  --red-subtle: var(--risk-crimson-tint);
+
+  --chart-grid: rgba(24, 29, 36, 0.07);
+  --chart-line: var(--bajaj-blue);
+  --chart-control: var(--ink-muted);
+  --chart-area-start: rgba(11, 74, 125, 0.16);
+  --chart-area-end: rgba(11, 74, 125, 0.0);
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* IMPECCABLE CRAFT FLOOR: THEMED BROWSER SURFACES               */
+/* ───────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.35);
+  color: #FFFFFF;
+}
+
+[data-theme="light"] ::selection {
+  background: #E7F0F7;
+  color: #181D24;
+}
+
+/* Custom Themed Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-tag);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Accessible, High-Contrast Keyboard Focus Rings */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Keycap token */
+.keycap {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-hairline);
+  border-radius: 4px;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Tabular Numerals for Financial & Econometric Data */
+.tabular-nums {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* BASE HTML RESETS                                              */
+/* ───────────────────────────────────────────────────────────── */
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* UNSLOP CURVED CARD & COMPONENT ARCHITECTURE                   */
+/* ───────────────────────────────────────────────────────────── */
+
+/* Authentic Curved Card (18px) */
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--r-card);
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.card:hover {
+  border-color: var(--border-visible);
+  background: var(--surface-card-hover);
+}
+
+/* Hairline structural divider */
+.divider {
+  height: 1px;
+  background: var(--border-hairline);
+  width: 100%;
+}
+
+/* Refined Institutional Metric Weights */
+.metric-hero {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 3rem;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.metric-large {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.25rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.metric-mid {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+/* Data Table with Tabular Number Alignment */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-hairline);
+  text-align: left;
+  font-family: var(--font-sans);
+}
+
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.data-table tr:hover td {
+  background: var(--surface-card-hover);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Progress Bar */
+.progress-track {
+  height: 4px;
+  background: var(--surface-tag);
+  border-radius: 2px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.progress-fill-ice {
+  background: var(--accent);
+}
+
+/* OnlyGenius-Style Semantic Navigation Item */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--r-control);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background: var(--surface-raised);
+}
+
+.nav-item.active {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-color: rgba(59, 130, 246, 0.3);
+  font-weight: 600;
+}
+
+/* Recharts Tooltip Override */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-default-tooltip {
+  background: var(--surface-card) !important;
+  border: 1px solid var(--border-visible) !important;
+  border-radius: var(--r-control) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  color: var(--text-primary) !important;
+  padding: 8px 12px !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* RESPONSIVE GRID LAYOUTS                                       */
+/* ───────────────────────────────────────────────────────────── */
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .grid-2 { grid-template-columns: 1fr 1fr; gap: 20px; }
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .grid-3 { grid-template-columns: 1fr 1fr; gap: 18px; }
+}
+@media (min-width: 1024px) {
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; gap: 16px; }
+}
+@media (min-width: 1100px) {
+  .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; gap: 18px; }
+}
+
+.grid-hero-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 960px) {
+  .grid-hero-main { grid-template-columns: 1.8fr 1fr 1fr; }
+}
+
+.page-content {
+  padding: 24px 20px 64px;
+}
+@media (min-width: 768px) {
+  .page-content { padding: 32px 32px 64px; }
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 14, 0.7);
+  z-index: 19;
+  backdrop-filter: blur(4px);
+}
+.sidebar-overlay.open {
+  display: block;
+}
+
+/* ─── PRINT MEDIA RULES (EXECUTIVE BOARD PACK & BRIEF EXPORT) ─── */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  /* Hide interactive navigation, chrome, toggles, and buttons */
+  aside,
+  header,
+  nav,
+  button,
+  .no-print,
+  [role="tablist"],
+  details summary,
+  .sidebar-overlay {
+    display: none !important;
+  }
+
+  /* Force pure archival white background and deep ink typography */
+  html,
+  body,
+  #root,
+  main {
+    background: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+    color: #181D24 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  /* Prevent page breaks across cards */
+  section,
+  article,
+  .rounded-2xl,
+  .rounded-xl,
+  .rounded-lg,
+  table,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  /* Clean subtle borders on paper */
+  .border,
+  .border-b,
+  .border-t,
+  .border-l,
+  .border-r {
+    border-color: #E2DDD2 !important;
+  }
+
+  /* Ensure chart svgs print clearly */
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
