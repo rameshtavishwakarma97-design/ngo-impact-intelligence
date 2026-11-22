@@ -1,0 +1,152 @@
+{
+  "nashik": {
+    "id": "nashik",
+    "name": "Nashik District",
+    "districtKey": "nashik",
+    "state": "Maharashtra",
+    "center": [
+      74.0918,
+      20.2235
+    ],
+    "bbox": [
+      73.2489,
+      19.584,
+      74.9347,
+      20.8631
+    ],
+    "zoom": 9.3
+  },
+  "pune": {
+    "id": "pune",
+    "name": "Pune District",
+    "districtKey": "pune",
+    "state": "Maharashtra",
+    "center": [
+      74.2438,
+      18.6448
+    ],
+    "bbox": [
+      73.323,
+      17.8952,
+      75.1646,
+      19.3943
+    ],
+    "zoom": 9.3
+  },
+  "thane": {
+    "id": "thane",
+    "name": "Thane District",
+    "districtKey": "thane",
+    "state": "Maharashtra",
+    "center": [
+      73.2895,
+      19.3595
+    ],
+    "bbox": [
+      72.7842,
+      18.9871,
+      73.7948,
+      19.7319
+    ],
+    "zoom": 10.4
+  },
+  "maharashtra": {
+    "id": "maharashtra",
+    "name": "Maharashtra",
+    "state": "Maharashtra",
+    "center": [
+      76.7765,
+      18.8199
+    ],
+    "bbox": [
+      72.6546,
+      15.6061,
+      80.8984,
+      22.0337
+    ],
+    "zoom": 6.8
+  },
+  "chhindwara": {
+    "id": "chhindwara",
+    "name": "Chhindwara District",
+    "districtKey": "chhindwara",
+    "state": "Madhya Pradesh",
+    "center": [
+      78.8257,
+      22.1395
+    ],
+    "bbox": [
+      78.2451,
+      21.4621,
+      79.4064,
+      22.8169
+    ],
+    "zoom": 9.3
+  },
+  "jabalpur": {
+    "id": "jabalpur",
+    "name": "Jabalpur District",
+    "districtKey": "jabalpur",
+    "state": "Madhya Pradesh",
+    "center": [
+      79.9647,
+      23.2237
+    ],
+    "bbox": [
+      79.3468,
+      22.8331,
+      80.5825,
+      23.6143
+    ],
+    "zoom": 9.3
+  },
+  "madhya_pradesh": {
+    "id": "madhya_pradesh",
+    "name": "Madhya Pradesh",
+    "state": "Madhya Pradesh",
+    "center": [
+      78.4235,
+      23.9695
+    ],
+    "bbox": [
+      74.0347,
+      21.0699,
+      82.8122,
+      26.8692
+    ],
+    "zoom": 6.8
+  },
+  "coimbatore": {
+    "id": "coimbatore",
+    "name": "Coimbatore District",
+    "districtKey": "coimbatore",
+    "state": "Tamil Nadu",
+    "center": [
+      76.9768,
+      10.8125
+    ],
+    "bbox": [
+      76.659,
+      10.2224,
+      77.2945,
+      11.4026
+    ],
+    "zoom": 9.3
+  },
+  "tamil_nadu": {
+    "id": "tamil_nadu",
+    "name": "Tamil Nadu",
+    "state": "Tamil Nadu",
+    "center": [
+      78.2899,
+      10.8195
+    ],
+    "bbox": [
+      76.2334,
+      8.0763,
+      80.3464,
+      13.5627
+    ],
+    "zoom": 7.4
+  }
+}

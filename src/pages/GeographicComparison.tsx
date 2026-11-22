@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
@@ -443,6 +443,42 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
     }
   };
 
+  const handleSelectDistrict = useCallback((dist: string | null) => {
+    setSelectedDistrictId(dist);
+    if (dist) {
+      const target = canonicalGroupedDistricts.find((d) => d.id === dist);
+      if (target) setSelectedState(target.state);
+    }
+    setSelectedNgoId(null);
+    setSelectedCentre(null);
+  }, [canonicalGroupedDistricts]);
+
+  const handleSelectState = useCallback((st: string | null) => {
+    setSelectedState(st);
+    setSelectedDistrictId(null);
+    setSelectedNgoId(null);
+    setSelectedCentre(null);
+  }, []);
+
+  const handleSelectNgo = useCallback((ngo: string | null) => {
+    setSelectedNgoId(ngo);
+    setSelectedCentre(null);
+  }, []);
+
+  const handleSelectCentre = useCallback((centre: OperationalCentre | null) => {
+    setSelectedCentre(centre);
+    if (centre) {
+      setSelectedNgoId(centre.ngoId);
+      const target = canonicalGroupedDistricts.find(
+        (d) => d.name.toLowerCase() === centre.district.toLowerCase()
+      );
+      if (target) {
+        setSelectedDistrictId(target.id);
+        setSelectedState(target.state);
+      }
+    }
+  }, [canonicalGroupedDistricts]);
+
   return (
     <div className="space-y-4 pb-6">
       {/* ── TOAST NOTIFICATION ── */}
@@ -668,36 +704,12 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
               selectedDistrictId={selectedDistrictId}
               selectedState={selectedState}
               selectedNgoId={selectedNgoId}
+              selectedCentre={selectedCentre}
               activeLayer={activeLayer}
-              onSelectDistrict={(dist) => {
-                setSelectedDistrictId(dist);
-                if (dist) {
-                  const target = canonicalGroupedDistricts.find((d) => d.id === dist);
-                  if (target) setSelectedState(target.state);
-                }
-                setSelectedNgoId(null);
-                setSelectedCentre(null);
-              }}
-              onSelectState={(st) => {
-                setSelectedState(st);
-                setSelectedDistrictId(null);
-                setSelectedNgoId(null);
-                setSelectedCentre(null);
-              }}
-              onSelectNgo={(ngo) => {
-                setSelectedNgoId(ngo);
-                setSelectedCentre(null);
-              }}
-              onSelectCentre={(centre) => {
-                setSelectedCentre(centre);
-                const target = canonicalGroupedDistricts.find(
-                  (d) => d.name.toLowerCase() === centre.district.toLowerCase()
-                );
-                if (target) {
-                  setSelectedDistrictId(target.id);
-                  setSelectedState(target.state);
-                }
-              }}
+              onSelectDistrict={handleSelectDistrict}
+              onSelectState={handleSelectState}
+              onSelectNgo={handleSelectNgo}
+              onSelectCentre={handleSelectCentre}
               onNavigateToAudit={() => onNavigate?.('operations')}
             />
           </div>
