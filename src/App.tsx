@@ -245,7 +245,7 @@ function App() {
 
   return (
     <ImpactStoreProvider>
-      <div className="flex min-h-screen bg-[#F7F4ED] text-[#1C1917] relative">
+      <div className="flex min-h-screen bg-[#F7F4ED] text-[#1C1917] relative overflow-x-clip">
         {/* Mobile backdrop */}
         {isMobile && sidebarOpen && (
           <div
@@ -256,8 +256,10 @@ function App() {
 
         {/* ── 240px FIXED NAVIGATION SIDEBAR / 280px MOBILE DRAWER (ZERO SCROLLBAR) ── */}
         <aside
-          className={`h-screen flex flex-col justify-between flex-shrink-0 bg-[#EFECE4] border-r border-[#E2DDD2] transition-all duration-200 z-40 select-none pb-4 ${
-            isMobile ? 'fixed inset-y-0 left-0 shadow-2xl' : 'sticky top-0 h-screen'
+          className={`h-screen flex flex-col justify-between flex-shrink-0 bg-[#EFECE4] border-r border-[#E2DDD2] transition-all duration-200 select-none pb-4 ${
+            isMobile
+              ? 'fixed inset-y-0 left-0 shadow-2xl z-40'
+              : 'lg:fixed lg:inset-y-0 lg:left-0 lg:w-[240px] lg:z-30'
           }`}
           style={{
             width: sidebarOpen ? (isMobile ? 280 : 240) : 0,
@@ -558,7 +560,7 @@ function App() {
         </aside>
 
         {/* ── MAIN CONTENT AREA ──────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={`flex-1 flex flex-col min-w-0 transition-[padding] duration-200 ${sidebarOpen ? 'lg:pl-[240px]' : 'lg:pl-0'}`}>
           {/* Unified Persistent Top Bar across all 5 Pillars */}
           <header className="h-14 border-b border-[#E5DFD3] bg-[#F7F4ED]/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 sticky top-0 z-20 flex-shrink-0 gap-2">
             {/* Left: Mobile Toggle + Breadcrumb */}

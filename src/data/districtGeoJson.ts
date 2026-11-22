@@ -269,6 +269,129 @@ export const DISTRICT_GEOJSON: DistrictFeatureCollection = {
   ],
 };
 
+// ─── STATIC STATE BOUNDARIES (MAHARASHTRA, MADHYA PRADESH, TAMIL NADU) ───────
+export interface StateGeoFeature {
+  type: 'Feature';
+  properties: {
+    id: string;
+    name: 'Maharashtra' | 'Madhya Pradesh' | 'Tamil Nadu';
+    women: number;
+    disbursedCr: number;
+    districtsCount: number;
+    color: string;
+  };
+  geometry: {
+    type: 'Polygon';
+    coordinates: number[][][];
+  };
+}
+
+export interface StateFeatureCollection {
+  type: 'FeatureCollection';
+  features: StateGeoFeature[];
+}
+
+export const STATES_GEOJSON: StateFeatureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: {
+        id: 'maharashtra',
+        name: 'Maharashtra',
+        women: 23250,
+        disbursedCr: 20.7,
+        districtsCount: 3,
+        color: '#0B4A7D',
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [72.65, 15.65],
+            [72.90, 18.95],
+            [72.80, 20.15],
+            [73.50, 21.45],
+            [75.80, 21.65],
+            [78.50, 21.75],
+            [80.35, 21.35],
+            [80.85, 18.95],
+            [79.85, 18.65],
+            [78.45, 18.25],
+            [77.15, 17.75],
+            [75.80, 17.45],
+            [74.15, 15.85],
+            [73.40, 15.75],
+            [72.65, 15.65],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        id: 'madhya_pradesh',
+        name: 'Madhya Pradesh',
+        women: 12000,
+        disbursedCr: 10.8,
+        districtsCount: 2,
+        color: '#2E6B4E',
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [74.05, 21.85],
+            [74.35, 23.95],
+            [75.15, 24.85],
+            [76.85, 25.45],
+            [78.25, 26.85],
+            [79.15, 26.45],
+            [80.55, 25.25],
+            [82.75, 24.15],
+            [82.45, 23.15],
+            [81.45, 21.95],
+            [79.75, 21.55],
+            [78.45, 21.35],
+            [75.95, 21.35],
+            [74.05, 21.85],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        id: 'tamil_nadu',
+        name: 'Tamil Nadu',
+        women: 7600,
+        disbursedCr: 6.9,
+        districtsCount: 1,
+        color: '#B5532A',
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [76.25, 8.15],
+            [77.55, 8.15],
+            [78.25, 8.85],
+            [79.35, 9.35],
+            [79.85, 10.35],
+            [80.35, 13.45],
+            [79.85, 13.45],
+            [78.55, 12.85],
+            [77.05, 12.05],
+            [76.85, 11.55],
+            [76.45, 10.25],
+            [76.25, 8.15],
+          ],
+        ],
+      },
+    },
+  ],
+};
+
 // ─── SPATIAL CAMERA PRESETS FOR FLIGHT NAVIGATION ─────────────────────────────
 
 export interface SpatialCameraTarget {

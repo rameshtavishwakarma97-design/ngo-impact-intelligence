@@ -7,20 +7,23 @@ import {
   Popup,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+
+// Set Local-First Web Worker to eliminate remote bundle failures in Vite
+if (typeof window !== 'undefined' && typeof (maplibregl as any).setWorkerUrl === 'function') {
+  (maplibregl as any).setWorkerUrl('/maplibre-gl-worker.mjs');
+}
 import {
   DISTRICT_GEOJSON,
+  STATES_GEOJSON,
   SPATIAL_CAMERA_PRESETS,
   type DistrictGeoFeature,
 } from '../data/districtGeoJson';
 import {
   useImpactStore,
   type OperationalCentre,
-  type ServiceGapBlock,
 } from '../data/impactStore';
 import {
-  AlertTriangle,
   Layers,
-  ArrowRight,
   Compass,
 } from 'lucide-react';
 
@@ -38,6 +41,126 @@ interface SpatialMapProps {
   onNavigateToAudit?: () => void;
   className?: string;
 }
+
+// Inline Local Style Specification (version 8) — Zero external style fetch dependency
+const INLINE_LOCAL_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'esri-light-gray': {
+      type: 'raster',
+      tiles: [
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      attribution: '&copy; Esri &copy; OpenStreetMap',
+    },
+    'states-data': {
+      type: 'geojson',
+      data: STATES_GEOJSON as any,
+    },
+    'districts-data': {
+      type: 'geojson',
+      data: DISTRICT_GEOJSON as any,
+    },
+  },
+  layers: [
+    {
+      id: 'background',
+      type: 'background',
+      paint: {
+        'background-color': '#F3EFE6', // Warm Khadi Canvas
+      },
+    },
+    {
+      id: 'esri-basemap',
+      type: 'raster',
+      source: 'esri-light-gray',
+      paint: {
+        'raster-opacity': 0.65,
+      },
+    },
+    {
+      id: 'states-borders',
+      type: 'line',
+      source: 'states-data',
+      paint: {
+        'line-color': '#C8BFA8',
+        'line-width': 1.8,
+        'line-dasharray': [3, 2],
+      },
+    },
+    {
+      id: 'districts-fill',
+      type: 'fill',
+      source: 'districts-data',
+      paint: {
+        'fill-color': [
+          'match',
+          ['get', 'id'],
+          'pune', '#0B4A7D',
+          'thane', '#B42318',
+          'nashik', '#2E6B4E',
+          'chhindwara', '#2E6B4E',
+          'jabalpur', '#0B4A7D',
+          'coimbatore', '#B5532A',
+          '#0B4A7D',
+        ],
+        'fill-opacity': 0.60,
+      },
+    },
+    {
+      id: 'districts-extrusion',
+      type: 'fill-extrusion',
+      source: 'districts-data',
+      paint: {
+        'fill-extrusion-color': [
+          'match',
+          ['get', 'id'],
+          'pune', '#0B4A7D',
+          'thane', '#B42318',
+          'nashik', '#2E6B4E',
+          'chhindwara', '#2E6B4E',
+          'jabalpur', '#0B4A7D',
+          'coimbatore', '#B5532A',
+          '#EAE6DD',
+        ],
+        'fill-extrusion-height': [
+          'interpolate',
+          ['linear'],
+          ['get', 'women'],
+          3000, 6000,
+          8000, 14000,
+          14000, 26000,
+        ],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': 0.85,
+      },
+      layout: {
+        visibility: 'none',
+      },
+    },
+    {
+      id: 'districts-borders',
+      type: 'line',
+      source: 'districts-data',
+      paint: {
+        'line-color': '#1C1917',
+        'line-width': 1.8,
+        'line-opacity': 0.60,
+      },
+    },
+    {
+      id: 'districts-selected-border',
+      type: 'line',
+      source: 'districts-data',
+      paint: {
+        'line-color': '#0B4A7D',
+        'line-width': 3.5,
+      },
+      filter: ['==', 'id', ''],
+    },
+  ],
+};
 
 export const SpatialMap: React.FC<SpatialMapProps> = ({
   selectedDistrictId,
@@ -60,143 +183,57 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
 
   const [is25D, setIs25D] = useState<boolean>(false);
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
-  const [mapError, setMapError] = useState<string | null>(null);
+  const [useSvgFallback, setUseSvgFallback] = useState<boolean>(false);
   const [hoveredDistrict, setHoveredDistrict] = useState<DistrictGeoFeature['properties'] | null>(null);
 
-  // Initialize MapLibre
+  // Initialize MapLibre with local-first inline style specification
   useEffect(() => {
     if (!mapContainerRef.current) return;
+
+    // True WebGL Capability Detection
+    const hasWebGL = (() => {
+      try {
+        const canvas = document.createElement('canvas');
+        return !!(
+          window.WebGLRenderingContext &&
+          (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+        );
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!hasWebGL) {
+      setUseSvgFallback(true);
+      return;
+    }
 
     try {
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: 'https://tiles.openfreemap.org/styles/positron',
-        center: [77.2, 19.5],
-        zoom: 5.2,
+        style: INLINE_LOCAL_STYLE,
+        center: [77.5, 18.5],
+        zoom: 5.1,
         pitch: 0,
         bearing: 0,
         cooperativeGestures: true,
         attributionControl: false,
       });
 
+      // Bottom-right navigation controls (+ / -)
       map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
 
+      // ResizeObserver to ensure container non-zero geometry & instant responsiveness
+      const ro = new ResizeObserver(() => {
+        map.resize();
+      });
+      ro.observe(mapContainerRef.current);
+
+      map.on('error', (e) => {
+        console.warn('MapLibre internal notice:', e);
+      });
+
       map.on('load', () => {
-        // Softly retint Positron layers to match Warm Khadi palette (#F6F3EC)
-        try {
-          const style = map.getStyle();
-          if (style && style.layers) {
-            style.layers.forEach((layer: any) => {
-              if (layer.type === 'background') {
-                map.setPaintProperty(layer.id, 'background-color', '#F6F3EC');
-              } else if (layer.type === 'fill' && layer.id.includes('water')) {
-                map.setPaintProperty(layer.id, 'fill-color', '#E4EDF4');
-              } else if (layer.type === 'line' && (layer.id.includes('road') || layer.id.includes('tunnel'))) {
-                map.setPaintProperty(layer.id, 'line-color', '#E3DDD0');
-              }
-            });
-          }
-        } catch {
-          // Non-blocking style retint error
-        }
-
-        // Add Local GeoJSON Source
-        map.addSource('districts-data', {
-          type: 'geojson',
-          data: DISTRICT_GEOJSON as any,
-        });
-
-        // Add 2.5D Extrusion Layer (controlled by pitch/is25D)
-        map.addLayer({
-          id: 'districts-extrusion',
-          type: 'fill-extrusion',
-          source: 'districts-data',
-          paint: {
-            'fill-extrusion-color': [
-              'match',
-              ['get', 'id'],
-              'pune',
-              '#0B4A7D',
-              'thane',
-              '#B42318',
-              'nashik',
-              '#2E6B4E',
-              'chhindwara',
-              '#2E6B4E',
-              'jabalpur',
-              '#0B4A7D',
-              'coimbatore',
-              '#B5532A',
-              '#EAE6DD',
-            ],
-            'fill-extrusion-height': [
-              'interpolate',
-              ['linear'],
-              ['get', 'women'],
-              3000,
-              6000,
-              8000,
-              14000,
-              14000,
-              26000,
-            ],
-            'fill-extrusion-base': 0,
-            'fill-extrusion-opacity': 0.75,
-          },
-          layout: {
-            visibility: 'none',
-          },
-        });
-
-        // Add District Base Fills
-        map.addLayer({
-          id: 'districts-fill',
-          type: 'fill',
-          source: 'districts-data',
-          paint: {
-            'fill-color': [
-              'case',
-              ['==', ['get', 'id'], 'pune'],
-              '#0B4A7D',
-              ['==', ['get', 'id'], 'thane'],
-              '#B42318',
-              ['==', ['get', 'id'], 'nashik'],
-              '#2E6B4E',
-              ['==', ['get', 'id'], 'chhindwara'],
-              '#2E6B4E',
-              ['==', ['get', 'id'], 'jabalpur'],
-              '#0B4A7D',
-              ['==', ['get', 'id'], 'coimbatore'],
-              '#B5532A',
-              '#EAE6DD',
-            ],
-            'fill-opacity': 0.22,
-          },
-        });
-
-        // Add District Perimeter Outlines
-        map.addLayer({
-          id: 'districts-outline',
-          type: 'line',
-          source: 'districts-data',
-          paint: {
-            'line-color': '#C8BFB0',
-            'line-width': 1.2,
-          },
-        });
-
-        // Add Selected District Highlight Perimeter
-        map.addLayer({
-          id: 'districts-selected-outline',
-          type: 'line',
-          source: 'districts-data',
-          paint: {
-            'line-color': '#0B4A7D',
-            'line-width': 2.8,
-          },
-          filter: ['==', 'id', ''],
-        });
-
         // Hover & Click Listeners
         map.on('mousemove', 'districts-fill', (e: any) => {
           if (e.features && e.features[0]) {
@@ -222,19 +259,15 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         setMapLoaded(true);
       });
 
-      map.on('error', () => {
-        // Fallback gracefully without breaking React
-        setMapError('Interactive map rendering in static mode.');
-      });
-
       return () => {
+        ro.disconnect();
         map.remove();
         mapRef.current = null;
       };
     } catch {
-      setMapError('WebGL unavailable or tile server blocked.');
+      setUseSvgFallback(true);
     }
-  }, []);
+  }, [onSelectDistrict, onSelectState]);
 
   // Update Dynamic Shading & Extrusion based on Active Layer
   useEffect(() => {
@@ -243,140 +276,122 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
 
     try {
       if (activeLayer === 'outcomes') {
-        // High impact = deep Bajaj Blue & Moss, Low impact = crimson/neutral
+        // High impact = deep Bajaj Blue & Botanical Moss, Flagged = Brick Crimson
         map.setPaintProperty('districts-fill', 'fill-color', [
-          'interpolate',
-          ['linear'],
-          ['get', 'impactIndex'],
-          50,
-          '#FCECEB',
-          65,
-          '#FEF6EE',
-          75,
-          '#E8F3EC',
-          85,
+          'match',
+          ['get', 'id'],
+          'pune', '#0B4A7D',
+          'thane', '#B42318',
+          'nashik', '#2E6B4E',
+          'chhindwara', '#2E6B4E',
+          'jabalpur', '#0B4A7D',
+          'coimbatore', '#B5532A',
           '#0B4A7D',
         ]);
-        map.setPaintProperty('districts-fill', 'fill-opacity', 0.28);
+        map.setPaintProperty('districts-fill', 'fill-opacity', 0.65);
       } else if (activeLayer === 'cost_efficiency') {
-        // Higher SROI = deeper Botanical Moss
+        // SROI Multiplier shading
         map.setPaintProperty('districts-fill', 'fill-color', [
-          'interpolate',
-          ['linear'],
-          ['get', 'sroiMultiplier'],
-          1.0,
-          '#FCECEB',
-          2.0,
-          '#FEF6EE',
-          3.0,
-          '#E8F3EC',
-          3.6,
+          'match',
+          ['get', 'id'],
+          'pune', '#2E6B4E',
+          'thane', '#B42318',
+          'nashik', '#2E6B4E',
+          'chhindwara', '#2E6B4E',
+          'jabalpur', '#2E6B4E',
+          'coimbatore', '#0B4A7D',
           '#2E6B4E',
         ]);
-        map.setPaintProperty('districts-fill', 'fill-opacity', 0.32);
+        map.setPaintProperty('districts-fill', 'fill-opacity', 0.65);
       } else if (activeLayer === 'service_gaps') {
-        // Covered districts muted; service gaps highlighted
+        // Districts with unserved gaps highlighted with soft terracotta
         map.setPaintProperty('districts-fill', 'fill-color', [
-          'case',
-          ['>', ['get', 'serviceGapsCount'], 0],
-          '#FAEDE6',
-          '#F2EFE8',
+          'match',
+          ['get', 'id'],
+          'pune', '#FAEDE6',
+          'thane', '#EAE6DD',
+          'nashik', '#EAE6DD',
+          'chhindwara', '#FAEDE6',
+          'jabalpur', '#EAE6DD',
+          'coimbatore', '#FAEDE6',
+          '#EAE6DD',
         ]);
-        map.setPaintProperty('districts-fill', 'fill-opacity', 0.4);
+        map.setPaintProperty('districts-fill', 'fill-opacity', 0.50);
       }
     } catch {
-      // Non-blocking paint property fallback
+      // Non-blocking layer property transition
     }
   }, [activeLayer, mapLoaded]);
 
-  // Update Selected District Highlight Outline
+  // Update Selection Border Filter
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
     try {
       if (selectedDistrictId) {
-        map.setFilter('districts-selected-outline', ['==', 'id', selectedDistrictId]);
+        map.setFilter('districts-selected-border', ['==', 'id', selectedDistrictId]);
       } else {
-        map.setFilter('districts-selected-outline', ['==', 'id', '']);
+        map.setFilter('districts-selected-border', ['==', 'id', '']);
       }
     } catch {
-      // Ignored
+      // Non-blocking filter update
     }
   }, [selectedDistrictId, mapLoaded]);
 
-  // Toggle 2D vs 2.5D Extrusion View
-  const toggle25D = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const nextMode = !is25D;
-    setIs25D(nextMode);
-
-    if (nextMode) {
-      map.easeTo({
-        pitch: 38,
-        bearing: -10,
-        duration: 500,
-      });
-      if (map.getLayer('districts-extrusion')) {
-        map.setLayoutProperty('districts-extrusion', 'visibility', 'visible');
-      }
-    } else {
-      map.easeTo({
-        pitch: 0,
-        bearing: 0,
-        duration: 500,
-      });
-      if (map.getLayer('districts-extrusion')) {
-        map.setLayoutProperty('districts-extrusion', 'visibility', 'none');
-      }
-    }
-  }, [is25D]);
-
-  // Smooth flyTo transitions on selection
+  // Camera Flight Transitions
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    if (selectedDistrictId && SPATIAL_CAMERA_PRESETS[selectedDistrictId]) {
-      const preset = SPATIAL_CAMERA_PRESETS[selectedDistrictId];
-      map.flyTo({
-        center: preset.center,
-        zoom: preset.zoom,
-        pitch: is25D ? 38 : 0,
-        duration: 650,
-        essential: true,
-      });
-    } else if (selectedState) {
-      const stateKey = selectedState.toLowerCase().replace(/\s+/g, '_');
-      if (SPATIAL_CAMERA_PRESETS[stateKey]) {
-        const preset = SPATIAL_CAMERA_PRESETS[stateKey];
+    try {
+      if (selectedDistrictId) {
+        const target = SPATIAL_CAMERA_PRESETS[selectedDistrictId];
+        if (target) {
+          map.flyTo({
+            center: target.center,
+            zoom: target.zoom,
+            pitch: is25D ? 45 : 0,
+            bearing: is25D ? -12 : 0,
+            essential: true,
+            duration: 900,
+          });
+        }
+      } else if (selectedState) {
+        const stateKey = selectedState.toLowerCase().replace(/\s+/g, '_');
+        const target = SPATIAL_CAMERA_PRESETS[stateKey];
+        if (target) {
+          map.flyTo({
+            center: target.center,
+            zoom: target.zoom,
+            pitch: 0,
+            bearing: 0,
+            essential: true,
+            duration: 800,
+          });
+        }
+      } else {
+        const target = SPATIAL_CAMERA_PRESETS.all_india;
         map.flyTo({
-          center: preset.center,
-          zoom: preset.zoom,
-          pitch: is25D ? 38 : 0,
-          duration: 650,
+          center: target.center,
+          zoom: target.zoom,
+          pitch: 0,
+          bearing: 0,
           essential: true,
+          duration: 800,
         });
       }
-    } else {
-      map.flyTo({
-        center: SPATIAL_CAMERA_PRESETS.all_india.center,
-        zoom: SPATIAL_CAMERA_PRESETS.all_india.zoom,
-        pitch: is25D ? 38 : 0,
-        duration: 650,
-        essential: true,
-      });
+    } catch {
+      // Non-blocking camera flight
     }
-  }, [selectedDistrictId, selectedState, mapLoaded, is25D]);
+  }, [selectedDistrictId, selectedState, is25D, mapLoaded]);
 
-  // Update Operational Centre & Service Gap Markers
+  // HTML DOM Markers for Operational Centres & Thane Anomaly
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    // Clear existing markers & popups
+    // Clean up existing markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
     if (auditPopupRef.current) {
@@ -384,129 +399,351 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
       auditPopupRef.current = null;
     }
 
-    // Determine centres to display:
-    // If a district is selected, display that district's centres. If an NGO is selected, filter by NGO.
-    const relevantCentres = operationalCentres.filter((c) => {
-      if (selectedDistrictId && c.district.toLowerCase() !== selectedDistrictId.toLowerCase()) {
-        return false;
-      }
-      if (selectedNgoId && c.ngoId !== selectedNgoId) {
-        return false;
-      }
-      return true;
-    });
+    // 0. District Centroid Badges in Territory View (!selectedDistrictId)
+    if (!selectedDistrictId) {
+      DISTRICT_GEOJSON.features.forEach((feat) => {
+        const props = feat.properties;
+        const target = SPATIAL_CAMERA_PRESETS[props.id];
+        if (!target) return;
 
-    relevantCentres.forEach((centre) => {
+        const el = document.createElement('div');
+        el.className = 'cursor-pointer transition-transform duration-100 hover:scale-110 active:scale-95';
+        const isFlagged = props.auditStatus === 'flagged';
+        el.innerHTML = `
+          <div class="px-2 py-0.5 rounded-lg border shadow-xs text-[10px] font-bold flex items-center gap-1 ${
+            isFlagged
+              ? 'bg-[#FCECEB] text-[#B42318] border-[#B42318]/40'
+              : 'bg-[#FCFBF8] text-[#1C1917] border-[#E5DFD3] hover:border-[#0B4A7D]'
+          }">
+            <span class="w-1.5 h-1.5 rounded-full ${isFlagged ? 'bg-[#B42318] animate-ping' : 'bg-[#0B4A7D]'}"></span>
+            <span>${props.name}</span>
+            <span class="${isFlagged ? 'text-[#B42318]' : 'text-[#0B4A7D]'} font-mono">${Math.round(props.impactIndex)}</span>
+          </div>
+        `;
+
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onSelectDistrict(props.id);
+          onSelectState(props.state);
+        });
+
+        const marker = new Marker({ element: el, anchor: 'center' })
+          .setLngLat(target.center)
+          .addTo(map);
+
+        markersRef.current.push(marker);
+      });
+    }
+
+    // 1. Operational Centre Markers (When District is Selected)
+    const centresToRender = selectedDistrictId
+      ? operationalCentres.filter((c) => c.district.toLowerCase() === selectedDistrictId.toLowerCase())
+      : [];
+
+    centresToRender.forEach((centre) => {
       const el = document.createElement('div');
       el.className = 'group relative cursor-pointer';
 
-      // Pick badge color based on NGO and status
-      let badgeColor = '#2E6B4E'; // default Moss
-      if (centre.status === 'flagged') badgeColor = '#B42318';
-      else if (centre.ngoId === 'pratham') badgeColor = '#0B4A7D';
-      else if (centre.ngoId === 'smile') badgeColor = '#B5532A';
-      else if (centre.ngoId === 'magic-bus') badgeColor = '#A86414';
+      const isFlagged = centre.status === 'flagged';
+      const isSelected = selectedNgoId ? centre.ngoId === selectedNgoId : true;
 
       el.innerHTML = `
-        <div style="background-color: ${badgeColor};" class="w-4 h-4 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-transform transform group-hover:scale-125">
-          <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
-        </div>
-        <div class="absolute bottom-5 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-50">
-          <div class="bg-[#1C1917] text-[#FCFBF8] text-[10px] font-sans px-2.5 py-1 rounded shadow-lg whitespace-nowrap">
-            <span class="font-bold">${centre.name}</span> · ${centre.beneficiaries.toLocaleString('en-IN')} women
-            <div class="text-[9px] text-[#D6CFC2]">${centre.outcomeLift} · ${centre.completionPct}% pass</div>
-          </div>
-          <div class="w-1.5 h-1.5 bg-[#1C1917] rotate-45 -mt-1"></div>
-        </div>
+        <div class="w-4 h-4 rounded-full border-2 ${
+          isFlagged ? 'bg-[#B42318] border-white ring-2 ring-[#B42318]/40 animate-pulse' : 'bg-[#0B4A7D] border-white shadow-md'
+        } ${isSelected ? 'scale-110' : 'opacity-60'} transition-transform group-hover:scale-125"></div>
       `;
 
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         onSelectCentre?.(centre);
+        onSelectNgo(centre.ngoId);
       });
 
-      const marker = new maplibregl.Marker({ element: el })
+      const popup = new Popup({ offset: 12, closeButton: false }).setHTML(`
+        <div class="p-2 text-xs font-sans space-y-1">
+          <div class="font-bold text-[#1C1917]">${centre.name}</div>
+          <div class="text-[10px] text-[#6B655C]">${centre.beneficiaries} women · ${centre.completionPct}% completion</div>
+          <div class="text-[10px] text-[#2E6B4E] font-semibold">${centre.outcomeLift} verified lift</div>
+        </div>
+      `);
+
+      const marker = new Marker({ element: el })
         .setLngLat([centre.lng, centre.lat])
+        .setPopup(popup)
         .addTo(map);
 
       markersRef.current.push(marker);
     });
 
-    // Special Thane Anomaly Pulse & Audit Button
-    if (!selectedDistrictId || selectedDistrictId === 'thane') {
-      const kalwaCentre = operationalCentres.find((c) => c.id === 'cnt-magicbus-kalwa');
-      if (kalwaCentre) {
-        const pulseEl = document.createElement('div');
-        pulseEl.className = 'relative flex items-center justify-center';
-        pulseEl.innerHTML = `
-          <div class="absolute w-8 h-8 rounded-full bg-[#B42318]/25 animate-ping"></div>
-          <div class="w-5 h-5 rounded-full bg-[#B42318] border-2 border-white shadow-lg flex items-center justify-center cursor-pointer">
-            <span class="text-[9px] font-bold text-white">!</span>
-          </div>
-          <div class="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#B42318] text-white text-[10px] font-semibold px-2 py-0.5 rounded shadow">
-            142 GPS Cluster Flags
-          </div>
-        `;
+    // 2. Thane Kalwa Anomaly Overlay
+    if (selectedDistrictId === 'thane') {
+      const kalwaCoord: [number, number] = [73.0, 19.2];
+      const anomalyEl = document.createElement('div');
+      anomalyEl.className = 'relative cursor-pointer';
+      anomalyEl.innerHTML = `
+        <div class="relative flex items-center justify-center">
+          <span class="absolute w-10 h-10 rounded-full bg-[#B42318]/25 animate-ping"></span>
+          <span class="relative px-2 py-0.5 rounded-full bg-[#B42318] text-white text-[10px] font-bold shadow-lg border border-white flex items-center gap-1">
+            <span>⚠️ 142 GPS Flags</span>
+          </span>
+        </div>
+      `;
 
-        pulseEl.addEventListener('click', (e) => {
-          e.stopPropagation();
-          onSelectDistrict('thane');
-          onSelectNgo('magic-bus');
-          if (onNavigateToAudit) onNavigateToAudit();
-        });
+      anomalyEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onNavigateToAudit?.();
+      });
 
-        const pulseMarker = new maplibregl.Marker({ element: pulseEl })
-          .setLngLat([kalwaCentre.lng, kalwaCentre.lat])
-          .addTo(map);
+      const anomalyMarker = new Marker({ element: anomalyEl, anchor: 'center' })
+        .setLngLat(kalwaCoord)
+        .addTo(map);
 
-        markersRef.current.push(pulseMarker);
-      }
+      markersRef.current.push(anomalyMarker);
     }
 
-    // Service Gap Markers (When Service Gaps Layer is Active)
+    // 3. Service Gap Pulsing Rings (when service_gaps layer active)
     if (activeLayer === 'service_gaps') {
-      serviceGapBlocks.forEach((gap: ServiceGapBlock) => {
+      serviceGapBlocks.forEach((gap) => {
         const gapEl = document.createElement('div');
-        gapEl.className = 'group relative cursor-pointer flex flex-col items-center';
+        gapEl.className = 'relative flex items-center justify-center cursor-pointer';
         gapEl.innerHTML = `
-          <div class="w-5 h-5 rounded-full border-2 border-dashed border-[#B5532A] bg-[#FAEDE6] flex items-center justify-center shadow-xs">
-            <div class="w-1.5 h-1.5 rounded-full bg-[#B5532A]"></div>
-          </div>
-          <div class="mt-1 bg-[#FAEDE6] border border-[#B5532A]/30 text-[#B5532A] text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs whitespace-nowrap">
-            ${gap.name.split(' ')[0]} Gap (₹${gap.recommendedAllocationCr} Cr)
-          </div>
+          <span class="absolute w-8 h-8 rounded-full bg-[#B5532A]/30 animate-pulse"></span>
+          <span class="w-3 h-3 rounded-full bg-[#B5532A] border-2 border-white shadow-sm"></span>
         `;
 
-        const gapMarker = new maplibregl.Marker({ element: gapEl })
+        const gapPopup = new Popup({ offset: 10, closeButton: false }).setHTML(`
+          <div class="p-2 text-xs font-sans space-y-0.5">
+            <span class="font-bold text-[#B5532A] block">${gap.name}</span>
+            <span class="text-[10px] text-[#6B655C] block">${gap.unservedWomen} unserved women</span>
+            <span class="text-[10px] font-semibold text-[#1C1917] block">₹${gap.recommendedAllocationCr} Cr gap</span>
+          </div>
+        `);
+
+        const gapMarker = new Marker({ element: gapEl })
           .setLngLat([gap.lng, gap.lat])
+          .setPopup(gapPopup)
           .addTo(map);
 
         markersRef.current.push(gapMarker);
       });
     }
   }, [
-    operationalCentres,
-    serviceGapBlocks,
     selectedDistrictId,
     selectedNgoId,
     activeLayer,
-    mapLoaded,
-    onSelectDistrict,
-    onSelectNgo,
+    operationalCentres,
+    serviceGapBlocks,
     onSelectCentre,
+    onSelectNgo,
     onNavigateToAudit,
+    mapLoaded,
   ]);
 
+  // Toggle 2D vs 2.5D Tilt & Extrusion
+  const toggle25D = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const nextState = !is25D;
+    setIs25D(nextState);
+
+    map.easeTo({
+      pitch: nextState ? 48 : 0,
+      bearing: nextState ? -14 : 0,
+      duration: 500,
+    });
+
+    try {
+      if (nextState) {
+        map.setLayoutProperty('districts-extrusion', 'visibility', 'visible');
+        map.setLayoutProperty('districts-fill', 'visibility', 'none');
+      } else {
+        map.setLayoutProperty('districts-extrusion', 'visibility', 'none');
+        map.setLayoutProperty('districts-fill', 'visibility', 'visible');
+      }
+    } catch {
+      // Non-blocking layout transition
+    }
+  }, [is25D, mapLoaded]);
+
+  // True WebGL Fallback SVG Map
+  if (useSvgFallback) {
+    return (
+      <div className={`relative w-full h-full min-h-[340px] bg-[#F3EFE6] rounded-2xl border border-[#E5DFD3] overflow-hidden flex flex-col justify-between p-4 ${className}`}>
+        <div className="flex items-center justify-between text-xs border-b border-[#E5DFD3] pb-2">
+          <span className="font-bold text-[#1C1917]">Interactive Spatial Map (Vector SVG Mode)</span>
+          <span className="text-[10px] text-[#8C8479]">3 States · 6 Districts</span>
+        </div>
+
+        {/* Scaled Interactive SVG Vector Map of 3 States & 6 Districts */}
+        <div className="relative flex-1 flex items-center justify-center p-2">
+          <svg viewBox="0 0 460 360" className="w-full h-full max-h-[460px]">
+            {/* Maharashtra State Polygon */}
+            <path
+              d="M 60,110 L 120,105 L 180,115 L 210,140 L 190,190 L 130,200 L 70,170 Z"
+              fill="#EFECE4"
+              stroke="#D8D0C0"
+              strokeWidth="1.5"
+              strokeDasharray="4,3"
+            />
+            {/* Madhya Pradesh State Polygon */}
+            <path
+              d="M 120,30 L 220,20 L 290,50 L 310,100 L 250,115 L 140,95 Z"
+              fill="#EFECE4"
+              stroke="#D8D0C0"
+              strokeWidth="1.5"
+              strokeDasharray="4,3"
+            />
+            {/* Tamil Nadu State Polygon */}
+            <path
+              d="M 170,240 L 240,245 L 250,320 L 190,340 L 160,290 Z"
+              fill="#EFECE4"
+              stroke="#D8D0C0"
+              strokeWidth="1.5"
+              strokeDasharray="4,3"
+            />
+
+            {/* 6 District Clickable Polygons */}
+            {/* Pune */}
+            <g
+              onClick={() => {
+                onSelectDistrict('pune');
+                onSelectState('Maharashtra');
+              }}
+              className="cursor-pointer group"
+            >
+              <polygon
+                points="100,145 130,135 145,160 120,180 95,165"
+                fill={selectedDistrictId === 'pune' ? '#0B4A7D' : '#0B4A7D'}
+                fillOpacity={selectedDistrictId === 'pune' ? 0.75 : 0.38}
+                stroke="#0B4A7D"
+                strokeWidth={selectedDistrictId === 'pune' ? 3 : 1.5}
+              />
+              <text x="120" y="160" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#1C1917">
+                Pune
+              </text>
+            </g>
+
+            {/* Thane */}
+            <g
+              onClick={() => {
+                onSelectDistrict('thane');
+                onSelectState('Maharashtra');
+              }}
+              className="cursor-pointer group"
+            >
+              <polygon
+                points="75,130 95,125 100,145 80,150"
+                fill="#B42318"
+                fillOpacity={selectedDistrictId === 'thane' ? 0.75 : 0.38}
+                stroke="#B42318"
+                strokeWidth={selectedDistrictId === 'thane' ? 3 : 1.5}
+              />
+              <text x="86" y="140" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#1C1917">
+                Thane
+              </text>
+            </g>
+
+            {/* Nashik */}
+            <g
+              onClick={() => {
+                onSelectDistrict('nashik');
+                onSelectState('Maharashtra');
+              }}
+              className="cursor-pointer group"
+            >
+              <polygon
+                points="95,110 125,105 130,135 100,135"
+                fill="#2E6B4E"
+                fillOpacity={selectedDistrictId === 'nashik' ? 0.75 : 0.38}
+                stroke="#2E6B4E"
+                strokeWidth={selectedDistrictId === 'nashik' ? 3 : 1.5}
+              />
+              <text x="112" y="122" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#1C1917">
+                Nashik
+              </text>
+            </g>
+
+            {/* Chhindwara */}
+            <g
+              onClick={() => {
+                onSelectDistrict('chhindwara');
+                onSelectState('Madhya Pradesh');
+              }}
+              className="cursor-pointer group"
+            >
+              <polygon
+                points="180,75 220,70 230,95 190,100"
+                fill="#2E6B4E"
+                fillOpacity={selectedDistrictId === 'chhindwara' ? 0.75 : 0.38}
+                stroke="#2E6B4E"
+                strokeWidth={selectedDistrictId === 'chhindwara' ? 3 : 1.5}
+              />
+              <text x="205" y="88" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#1C1917">
+                Chhindwara
+              </text>
+            </g>
+
+            {/* Jabalpur */}
+            <g
+              onClick={() => {
+                onSelectDistrict('jabalpur');
+                onSelectState('Madhya Pradesh');
+              }}
+              className="cursor-pointer group"
+            >
+              <polygon
+                points="225,50 265,45 275,70 235,75"
+                fill="#0B4A7D"
+                fillOpacity={selectedDistrictId === 'jabalpur' ? 0.75 : 0.38}
+                stroke="#0B4A7D"
+                strokeWidth={selectedDistrictId === 'jabalpur' ? 3 : 1.5}
+              />
+              <text x="250" y="62" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#1C1917">
+                Jabalpur
+              </text>
+            </g>
+
+            {/* Coimbatore */}
+            <g
+              onClick={() => {
+                onSelectDistrict('coimbatore');
+                onSelectState('Tamil Nadu');
+              }}
+              className="cursor-pointer group"
+            >
+              <polygon
+                points="180,265 210,260 215,290 185,295"
+                fill="#B5532A"
+                fillOpacity={selectedDistrictId === 'coimbatore' ? 0.75 : 0.38}
+                stroke="#B5532A"
+                strokeWidth={selectedDistrictId === 'coimbatore' ? 3 : 1.5}
+              />
+              <text x="198" y="280" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#1C1917">
+                Coimbatore
+              </text>
+            </g>
+          </svg>
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] text-[#6B655C] border-t border-[#E5DFD3] pt-2">
+          <span>Click any district polygon to inspect localized indicators.</span>
+          <span className="font-semibold text-[#0B4A7D]">Instant Vector Mode</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`relative w-full rounded-2xl overflow-hidden bg-[#F6F3EC] border border-[#E5DFD3] shadow-xs ${className}`}>
-      {/* ── MAP CONTAINER ── */}
+    <div className={`relative w-full h-full min-h-[340px] rounded-2xl border border-[#E5DFD3] overflow-hidden bg-[#F3EFE6] select-none ${className}`}>
+      {/* ── MAPLIBRE CANVAS CONTAINER ── */}
       <div
         ref={mapContainerRef}
-        className="w-full h-[320px] sm:h-[480px] lg:h-[580px]"
-        aria-label="MapLibre 5-Level CSR Spatial Impact Explorer"
+        className="w-full h-full min-h-[340px]"
+        aria-label="MapLibre 5-Level Spatial Impact Explorer"
       />
 
-      {/* ── CONTROLS OVERLAY: 2D/2.5D TILT & RESET CAMERA ── */}
+      {/* ── CONTROLS OVERLAY: 2D/2.5D TILT & RESET CAMERA (TOP-RIGHT) ── */}
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
         <button
           type="button"
@@ -542,9 +779,9 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
           <span className="w-2 h-2 rounded-full bg-[#0B4A7D]"></span>
           <span>
             {activeLayer === 'outcomes'
-              ? 'Outcome Index (0–100)'
+              ? 'Outcomes (0–100)'
               : activeLayer === 'cost_efficiency'
-              ? 'SROI Efficiency'
+              ? '₹ SROI Efficiency'
               : 'Service Gaps & Unserved Hubs'}
           </span>
         </span>
@@ -552,7 +789,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         <span className="text-[#6B655C]">6 Districts · 20 Centres</span>
       </div>
 
-      {/* ── DESKTOP HOVER TOOLTIP ── */}
+      {/* ── DESKTOP HOVER TOOLTIP (TOP-LEFT) ── */}
       {hoveredDistrict && (
         <div className="absolute top-3 left-3 z-20 pointer-events-none hidden sm:block p-3 rounded-xl bg-[#FCFBF8]/95 backdrop-blur-md border border-[#E5DFD3] text-xs shadow-lg max-w-xs space-y-1">
           <div className="flex items-center justify-between gap-2 border-b border-[#E5DFD3] pb-1">
@@ -572,30 +809,6 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
           <div className="text-[10px] text-[#6B655C] pt-1 border-t border-[#E5DFD3]/60 truncate">
             {hoveredDistrict.ngosList.join(' · ')}
           </div>
-        </div>
-      )}
-
-      {/* ── MOBILE TAP PREVIEW STRIP (< 768px) ── */}
-      {selectedDistrictId && (
-        <div className="sm:hidden p-3 bg-[#FCFBF8] border-t border-[#E5DFD3] flex items-center justify-between text-xs">
-          <div>
-            <span className="font-bold text-[#1C1917] capitalize">{selectedDistrictId} District</span>
-            <span className="text-[10px] text-[#6B655C] block">
-              {operationalCentres.filter((c) => c.district.toLowerCase() === selectedDistrictId.toLowerCase()).length} Active Centres
-            </span>
-          </div>
-          <span className="text-[11px] font-semibold text-[#0B4A7D] flex items-center gap-1">
-            <span>Inspecting</span>
-            <ArrowRight size={12} />
-          </span>
-        </div>
-      )}
-
-      {/* Error or Static Mode Banner */}
-      {mapError && (
-        <div className="absolute inset-x-3 bottom-12 z-20 p-2.5 rounded-xl bg-[#FEF6EE] border border-[#A86414]/20 text-[#A86414] text-xs flex items-center gap-2">
-          <AlertTriangle size={14} className="flex-shrink-0" />
-          <span>{mapError}</span>
         </div>
       )}
     </div>
