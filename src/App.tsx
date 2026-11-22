@@ -127,7 +127,15 @@ const LoadingFallback = () => (
 
 function App() {
   const isMobile = useIsMobile();
-  const [activeId, setActiveId] = useState<ScreenId>('overview');
+  const [activeId, setActiveId] = useState<ScreenId>(() => {
+    if (typeof window !== 'undefined') {
+      const search = new URLSearchParams(window.location.search).get('screen') as ScreenId;
+      if (search) return search;
+      const hash = window.location.hash.replace('#', '') as ScreenId;
+      if (hash) return hash;
+    }
+    return 'overview';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [searchOpen, setSearchOpen] = useState(false);

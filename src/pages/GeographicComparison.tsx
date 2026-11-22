@@ -3,688 +3,1422 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
   X,
-  ArrowRight,
-  AlertTriangle as Warning,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  TrendingUp,
+  Shield,
+  ChevronRight,
+  Lock,
+  DollarSign,
 } from 'lucide-react';
-import { useImpactStore, type NGOStoreRecord, type ProgramType, type RegionalTier } from '../data/impactStore';
+import {
+  useImpactStore,
+  type ProgramType,
+  type OperationalCentre,
+  type ServiceGapBlock,
+} from '../data/impactStore';
+import { SpatialMap, type MapDisplayLayer } from '../components/SpatialMap';
 
 interface GeographicComparisonProps {
   onNavigate?: (screenId: string) => void;
 }
 
-type HighlightMetric = 'outcome' | 'grant' | 'retention' | 'audit';
+// Representative individual beneficiary record for Level 5 DPDP 360° Drawer
+interface Beneficiary360Record {
+  id: string;
+  maskedToken: string;
+  nameMasked: string;
+  district: string;
+  centreName: string;
+  ngoName: string;
+  program: string;
+  age: number;
+  familySize: number;
+  enrolledDate: string;
+  attendancePct: number;
+  gpsGeofencePassPct: number;
+  baselineIncome: number;
+  currentIncome: number;
+  liftPct: number;
+  milestones: { name: string; completed: boolean; date?: string }[];
+  percentiles: {
+    withinCentre: number;
+    withinDistrict: number;
+    withinPortfolio: number;
+  };
+  auditRecord: {
+    auditSampleId: string;
+    verifiedBy: string;
+    verifiedDate: string;
+    consentRef: string;
+  };
+}
+
+const SAMPLE_BENEFICIARIES: Record<string, Beneficiary360Record[]> = {
+  pune: [
+    {
+      id: 'BEN-PUN-01',
+      maskedToken: 'XXXX-XXXX-8412',
+      nameMasked: 'Sunita P**** [Token: MH-PUN-08412]',
+      district: 'Pune',
+      centreName: 'Hadapsar Ward 18 Micro-Hub',
+      ngoName: 'Pratham Foundation',
+      program: 'Micro-Skilling & Enterprise',
+      age: 32,
+      familySize: 4,
+      enrolledDate: '15 Mar 2024',
+      attendancePct: 96.4,
+      gpsGeofencePassPct: 98.4,
+      baselineIncome: 4200,
+      currentIncome: 7650,
+      liftPct: 82.1,
+      milestones: [
+        { name: 'Financial Literacy & UPI Induction', completed: true, date: '02 Apr 2024' },
+        { name: 'Micro-Culinary & Packaging Certification', completed: true, date: '28 May 2024' },
+        { name: 'Seed Capital & Merchant QR Disbursal', completed: true, date: '14 Jun 2024' },
+        { name: 'Sustained Revenue > ₹6,000/mo (30-day proof)', completed: true, date: '10 Aug 2024' },
+      ],
+      percentiles: {
+        withinCentre: 78,
+        withinDistrict: 82,
+        withinPortfolio: 80,
+      },
+      auditRecord: {
+        auditSampleId: 'AUD-2024-Q3-094',
+        verifiedBy: 'KPMG Concurrent Audit Cell',
+        verifiedDate: '18 Aug 2024',
+        consentRef: 'DPDP-MH-2024-9912',
+      },
+    },
+    {
+      id: 'BEN-PUN-02',
+      maskedToken: 'XXXX-XXXX-9143',
+      nameMasked: 'Amina S**** [Token: MH-PUN-09143]',
+      district: 'Pune',
+      centreName: 'Hadapsar Ward 18 Micro-Hub',
+      ngoName: 'Pratham Foundation',
+      program: 'Micro-Skilling & Enterprise',
+      age: 28,
+      familySize: 5,
+      enrolledDate: '15 Mar 2024',
+      attendancePct: 94.0,
+      gpsGeofencePassPct: 97.2,
+      baselineIncome: 3800,
+      currentIncome: 7200,
+      liftPct: 89.5,
+      milestones: [
+        { name: 'Financial Literacy & UPI Induction', completed: true, date: '02 Apr 2024' },
+        { name: 'Apparel Tailoring & Quality Stitching', completed: true, date: '25 May 2024' },
+        { name: 'Seed Capital & Sewing Machine Grant', completed: true, date: '16 Jun 2024' },
+        { name: 'Commercial Vendor Linkage (Pune Market)', completed: true, date: '22 Aug 2024' },
+      ],
+      percentiles: {
+        withinCentre: 74,
+        withinDistrict: 79,
+        withinPortfolio: 77,
+      },
+      auditRecord: {
+        auditSampleId: 'AUD-2024-Q3-097',
+        verifiedBy: 'KPMG Concurrent Audit Cell',
+        verifiedDate: '18 Aug 2024',
+        consentRef: 'DPDP-MH-2024-9925',
+      },
+    },
+    {
+      id: 'BEN-PUN-03',
+      maskedToken: 'XXXX-XXXX-3301',
+      nameMasked: 'Kavita D**** [Token: MH-PUN-03301]',
+      district: 'Pune',
+      centreName: 'Baramati Cluster Hub',
+      ngoName: 'Smile Foundation (Pune Rural)',
+      program: 'Rural Skilling & Micro-Agri',
+      age: 35,
+      familySize: 4,
+      enrolledDate: '01 Apr 2024',
+      attendancePct: 91.8,
+      gpsGeofencePassPct: 94.5,
+      baselineIncome: 4500,
+      currentIncome: 7400,
+      liftPct: 64.4,
+      milestones: [
+        { name: 'Organic Poultry & Dairy Feed Modules', completed: true, date: '20 Apr 2024' },
+        { name: 'Self-Help Group Bookkeeping Audit', completed: true, date: '10 Jun 2024' },
+        { name: 'Cold-Chain Co-operative Linkage', completed: true, date: '05 Jul 2024' },
+        { name: 'First Formal Producer Payment Received', completed: true, date: '12 Aug 2024' },
+      ],
+      percentiles: {
+        withinCentre: 69,
+        withinDistrict: 72,
+        withinPortfolio: 73,
+      },
+      auditRecord: {
+        auditSampleId: 'AUD-2024-Q3-112',
+        verifiedBy: 'PwC Independent Verifier',
+        verifiedDate: '24 Aug 2024',
+        consentRef: 'DPDP-MH-2024-1048',
+      },
+    },
+  ],
+  default: [
+    {
+      id: 'BEN-DEF-01',
+      maskedToken: 'XXXX-XXXX-5521',
+      nameMasked: 'Radha M**** [Token: ID-DEF-05521]',
+      district: 'Regional Cohort',
+      centreName: 'Core District Operational Centre',
+      ngoName: 'Bajaj CSR Partner Network',
+      program: 'Women Empowerment & Skilling',
+      age: 30,
+      familySize: 4,
+      enrolledDate: '10 Feb 2024',
+      attendancePct: 93.5,
+      gpsGeofencePassPct: 96.8,
+      baselineIncome: 4100,
+      currentIncome: 7150,
+      liftPct: 74.4,
+      milestones: [
+        { name: 'Baseline Skills Assessment', completed: true, date: '20 Feb 2024' },
+        { name: 'Core Vocational Mastery Module', completed: true, date: '15 Apr 2024' },
+        { name: 'Market-Ready Certification', completed: true, date: '30 May 2024' },
+        { name: 'Post-Training Revenue Milestone', completed: true, date: '15 Jul 2024' },
+      ],
+      percentiles: {
+        withinCentre: 72,
+        withinDistrict: 75,
+        withinPortfolio: 76,
+      },
+      auditRecord: {
+        auditSampleId: 'AUD-2024-Q3-008',
+        verifiedBy: 'Concurrent Audit Team',
+        verifiedDate: '01 Aug 2024',
+        consentRef: 'DPDP-ACT-2024-7741',
+      },
+    },
+  ],
+};
 
 export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNavigate }) => {
-  const { ngos } = useImpactStore();
+  const {
+    districtAllocations,
+    operationalCentres,
+    serviceGapBlocks,
+    stateRollups,
+    portfolioBenchmarks,
+    earmarkReserveForGap,
+    portfolio,
+  } = useImpactStore();
 
+  // Navigation & Drilldown State (5 Levels)
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
+  const [selectedNgoId, setSelectedNgoId] = useState<string | null>(null);
+  const [selectedCentre, setSelectedCentre] = useState<OperationalCentre | null>(null);
+  const [inspectingBeneficiary, setInspectingBeneficiary] = useState<Beneficiary360Record | null>(null);
+
+  // Filters & Map Display Layer
+  const [activeLayer, setActiveLayer] = useState<MapDisplayLayer>('outcomes');
   const [programFilter, setProgramFilter] = useState<'all' | ProgramType>('all');
-  const [tierFilter, setTierFilter] = useState<'all' | RegionalTier>('all');
-  const [highlightedMetric, setHighlightedMetric] = useState<HighlightMetric>('outcome');
-  const [selectedDistrictNgo, setSelectedDistrictNgo] = useState<NGOStoreRecord | null>(null);
+  const [formulaOpen, setFormulaOpen] = useState<boolean>(false);
+  const [reserveToast, setReserveToast] = useState<string | null>(null);
 
-  // Global ESC key listener to dismiss drawer
+  // Escape key listener for dismissing Level 5 Beneficiary Drawer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedDistrictNgo(null);
+      if (e.key === 'Escape') {
+        if (inspectingBeneficiary) setInspectingBeneficiary(null);
+        else if (formulaOpen) setFormulaOpen(false);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [inspectingBeneficiary, formulaOpen]);
 
-  // Filtered district rows from canonical NGOs
-  const filteredDistricts = useMemo(() => {
-    return ngos.filter((n) => {
-      const matchProgram = programFilter === 'all' || n.program === programFilter;
-      const matchTier = tierFilter === 'all' || n.tier === tierFilter;
-      return matchProgram && matchTier;
+  // Active district allocations matching current filter
+  const filteredAllocations = useMemo(() => {
+    return districtAllocations.filter((alloc) => {
+      const matchProgram = programFilter === 'all' || alloc.program === programFilter;
+      const matchState = !selectedState || alloc.state === selectedState;
+      const matchDistrict = !selectedDistrictId || alloc.districtKey === selectedDistrictId;
+      return matchProgram && matchState && matchDistrict;
     });
-  }, [ngos, programFilter, tierFilter]);
+  }, [districtAllocations, programFilter, selectedState, selectedDistrictId]);
 
-  // Aggregate tier metrics across 6 canonical districts
-  const tierSummary = useMemo(() => {
-    const ruralNgos = ngos.filter((n) => n.tier === 'Rural');
-    const tier2Ngos = ngos.filter((n) => n.tier === 'Tier-2');
-    const metroNgos = ngos.filter((n) => n.tier === 'Metro');
+  // Current district details when selected
+  const activeDistrictAllocations = useMemo(() => {
+    if (!selectedDistrictId) return [];
+    return districtAllocations.filter((a) => a.districtKey === selectedDistrictId);
+  }, [districtAllocations, selectedDistrictId]);
 
-    const ruralWomen = ruralNgos.reduce((s, n) => s + n.enrolled, 0);
-    const tier2Women = tier2Ngos.reduce((s, n) => s + n.enrolled, 0);
-    const metroWomen = metroNgos.reduce((s, n) => s + n.enrolled, 0);
-
-    const ruralDisbursed = ruralNgos.reduce((s, n) => s + n.grantDisbursed, 0) / 10000000;
-    const tier2Disbursed = tier2Ngos.reduce((s, n) => s + n.grantDisbursed, 0) / 10000000;
-    const metroDisbursed = metroNgos.reduce((s, n) => s + n.grantDisbursed, 0) / 10000000;
+  const activeDistrictSummary = useMemo(() => {
+    if (!selectedDistrictId || activeDistrictAllocations.length === 0) return null;
+    const first = activeDistrictAllocations[0];
+    const totalWomen = activeDistrictAllocations.reduce((sum, a) => sum + a.women, 0);
+    const totalDisbursedCr = activeDistrictAllocations.reduce((sum, a) => sum + a.grantDisbursed, 0) / 10000000;
+    const weightedImpact = totalWomen > 0
+      ? activeDistrictAllocations.reduce((sum, a) => sum + a.impactIndex * a.women, 0) / totalWomen
+      : 0;
 
     return {
-      rural: { women: ruralWomen, disbursedCr: ruralDisbursed, ngos: ruralNgos },
-      tier2: { women: tier2Women, disbursedCr: tier2Disbursed, ngos: tier2Ngos },
-      metro: { women: metroWomen, disbursedCr: metroDisbursed, ngos: metroNgos },
+      name: first.district,
+      districtKey: first.districtKey,
+      state: first.state,
+      tier: first.tier,
+      totalWomen,
+      totalDisbursedCr,
+      weightedImpact: Math.round(weightedImpact * 10) / 10,
+      ngos: activeDistrictAllocations,
     };
-  }, [ngos]);
+  }, [selectedDistrictId, activeDistrictAllocations]);
+
+  // Service gap blocks for current district
+  const districtServiceGaps = useMemo(() => {
+    if (!selectedDistrictId) return [];
+    return serviceGapBlocks.filter((b) => b.districtKey === selectedDistrictId);
+  }, [serviceGapBlocks, selectedDistrictId]);
+
+  // Operational centres for current district or NGO
+  const activeCentres = useMemo(() => {
+    if (!selectedDistrictId) return [];
+    return operationalCentres.filter((c) => {
+      const matchDist = c.district.toLowerCase() === selectedDistrictId.toLowerCase();
+      const matchNgo = !selectedNgoId || c.ngoId === selectedNgoId;
+      return matchDist && matchNgo;
+    });
+  }, [operationalCentres, selectedDistrictId, selectedNgoId]);
+
+  // Handle reserve earmarking with notification toast
+  const handleEarmark = (block: ServiceGapBlock) => {
+    earmarkReserveForGap(block.id, block.recommendedAllocationCr);
+    setReserveToast(`Committed ₹${block.recommendedAllocationCr.toFixed(2)} Cr from Bajaj Corpus Reserve to ${block.name}`);
+    setTimeout(() => setReserveToast(null), 4000);
+  };
+
+  // Breadcrumb segment handler
+  const handleBreadcrumbClick = (level: number) => {
+    if (level === 1) {
+      setSelectedState(null);
+      setSelectedDistrictId(null);
+      setSelectedNgoId(null);
+      setSelectedCentre(null);
+      setInspectingBeneficiary(null);
+    } else if (level === 2) {
+      setSelectedDistrictId(null);
+      setSelectedNgoId(null);
+      setSelectedCentre(null);
+      setInspectingBeneficiary(null);
+    } else if (level === 3) {
+      setSelectedNgoId(null);
+      setSelectedCentre(null);
+      setInspectingBeneficiary(null);
+    } else if (level === 4) {
+      setSelectedCentre(null);
+      setInspectingBeneficiary(null);
+    }
+  };
 
   return (
-    <div className="space-y-6 pb-24 text-[#1C1917]">
-      {/* ── EDITORIAL PAGE HEADER ── */}
-      <div className="space-y-1">
-        <h1 className="font-narrative text-2xl sm:text-3xl font-normal text-[#1C1917]">
-          Regional Equity & District Performance
-        </h1>
-        <p className="text-xs sm:text-sm text-[#6B655C] max-w-3xl leading-relaxed">
-          Standardized saturation, outcome depth, and audit integrity disaggregated across 6 district clusters in Maharashtra, Madhya Pradesh, and Tamil Nadu.
-        </p>
-      </div>
-
-      {/* ── DUAL INTERACTIVE FILTER BAR ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-2xs">
-        {/* Left: Programme Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          <span className="text-[11px] font-semibold text-[#8C8479] mr-1 uppercase tracking-wider">
-            Programme:
-          </span>
-          <button
-            type="button"
-            onClick={() => setProgramFilter('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              programFilter === 'all'
-                ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                : 'text-[#6B655C] hover:bg-[#EAE6DD] hover:text-[#1C1917]'
-            }`}
+    <div className="space-y-6 pb-12">
+      {/* ── TOAST NOTIFICATION ── */}
+      <AnimatePresence>
+        {reserveToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-5 right-5 z-50 p-4 rounded-xl bg-[#2E6B4E] text-white shadow-xl flex items-center gap-3 text-xs max-w-md border border-white/20"
           >
-            All Programmes (42,850)
-          </button>
-          <button
-            type="button"
-            onClick={() => setProgramFilter('micro-skilling')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              programFilter === 'micro-skilling'
-                ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                : 'text-[#6B655C] hover:bg-[#EAE6DD] hover:text-[#1C1917]'
-            }`}
-          >
-            Micro-Skilling (28,400)
-          </button>
-          <button
-            type="button"
-            onClick={() => setProgramFilter('literacy')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              programFilter === 'literacy'
-                ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                : 'text-[#6B655C] hover:bg-[#EAE6DD] hover:text-[#1C1917]'
-            }`}
-          >
-            Women's Literacy (14,450)
-          </button>
-        </div>
-
-        {/* Right: Regional Tier Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          <span className="text-[11px] font-semibold text-[#8C8479] mr-1 uppercase tracking-wider">
-            Tier:
-          </span>
-          {(['all', 'Rural', 'Tier-2', 'Metro'] as const).map((t) => (
+            <CheckCircle2 size={18} className="flex-shrink-0 text-[#B4E3C6]" />
+            <div className="space-y-0.5">
+              <span className="font-bold block">Corpus Reserve Earmarked</span>
+              <p className="text-white/90 text-[11px]">{reserveToast}</p>
+            </div>
             <button
-              key={t}
               type="button"
-              onClick={() => setTierFilter(t)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                tierFilter === t
-                  ? 'bg-[#181D24] text-white shadow-2xs'
-                  : 'text-[#6B655C] hover:bg-[#EAE6DD] hover:text-[#1C1917]'
-              }`}
+              onClick={() => setReserveToast(null)}
+              className="ml-auto p-1 text-white/80 hover:text-white"
             >
-              {t === 'all' ? 'All Tiers' : t}
+              <X size={14} />
             </button>
-          ))}
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ── TOP STRIP: 3 CLEAN TIER COMPARISON SUMMARY TILES (ZERO BLACK CARDS) ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Tier 1: Rural Clusters */}
-        <div className="rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] p-5 space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#2E6B4E] bg-[#E8F3EC] px-2 py-0.5 rounded">
-              Rural Clusters
-            </span>
-            <span className="text-xs font-semibold text-[#2E6B4E]">Highest Capital Return</span>
-          </div>
-          <div>
-            <div className="text-2xl font-semibold text-[#181D24] tabular-nums">
-              {tierSummary.rural.women.toLocaleString('en-IN')}{' '}
-              <span className="text-xs font-normal text-[#646058]">women (28.0%)</span>
-            </div>
-            <div className="text-xs font-medium text-[#2E6B4E] mt-0.5 tabular-nums">
-              ₹{tierSummary.rural.disbursedCr.toFixed(1)} Cr disbursed · Chhindwara & Jabalpur
-            </div>
-          </div>
-          <p className="text-[11px] text-[#646058] leading-relaxed pt-2 border-t border-[#E5DFD3]">
-            Deepest intake poverty; lowest cost per verified outcome (Goonj ₹4,400/grad · +34% lift) and highest FLN literacy lift (Educate Girls 83% FLN 3).
-          </p>
-        </div>
+      {/* ── HEADER & BREADCRUMBS ── */}
+      <div className="space-y-3">
+        {/* Dynamic 5-Level Breadcrumb Bar */}
+        <nav
+          aria-label="Spatial Drilldown Breadcrumb"
+          className="flex flex-wrap items-center gap-1.5 text-xs text-[#6B655C] bg-[#FCFBF8] border border-[#E5DFD3] px-3.5 py-2 rounded-xl shadow-2xs"
+        >
+          <button
+            type="button"
+            onClick={() => handleBreadcrumbClick(1)}
+            className={`font-semibold transition-colors hover:text-[#0B4A7D] cursor-pointer ${
+              !selectedState && !selectedDistrictId ? 'text-[#0B4A7D]' : 'text-[#6B655C]'
+            }`}
+          >
+            All States (3)
+          </button>
 
-        {/* Tier 2: Tier-2 Clusters */}
-        <div className="rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] p-5 space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B5532A] bg-[#FAEDE6] px-2 py-0.5 rounded">
-              Tier-2 Clusters
-            </span>
-            <span className="text-xs font-semibold text-[#B5532A]">High Stability</span>
-          </div>
-          <div>
-            <div className="text-2xl font-semibold text-[#181D24] tabular-nums">
-              {tierSummary.tier2.women.toLocaleString('en-IN')}{' '}
-              <span className="text-xs font-normal text-[#646058]">women (38.4%)</span>
-            </div>
-            <div className="text-xs font-medium text-[#B5532A] mt-0.5 tabular-nums">
-              ₹{tierSummary.tier2.disbursedCr.toFixed(1)} Cr disbursed · Coimbatore & Nashik
-            </div>
-          </div>
-          <p className="text-[11px] text-[#646058] leading-relaxed pt-2 border-t border-[#E5DFD3]">
-            High merchant QR density in Coimbatore textile clusters (Smile 65%) and strong community library reading retention (Room to Read 81% FLN 3).
-          </p>
-        </div>
+          {selectedState && (
+            <>
+              <ChevronRight size={13} className="text-[#8C8479]" />
+              <button
+                type="button"
+                onClick={() => handleBreadcrumbClick(2)}
+                className={`transition-colors hover:text-[#0B4A7D] cursor-pointer ${
+                  !selectedDistrictId ? 'font-semibold text-[#0B4A7D]' : 'text-[#6B655C]'
+                }`}
+              >
+                {selectedState}
+              </button>
+            </>
+          )}
 
-        {/* Tier 3: Metro Clusters */}
-        <div className="rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] p-5 space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#646058] bg-[#EEEAE0] px-2 py-0.5 rounded">
-              Metro Clusters
-            </span>
-            <span className="text-xs font-semibold text-[#B42318]">1 Audit Hold (Thane)</span>
-          </div>
-          <div>
-            <div className="text-2xl font-semibold text-[#181D24] tabular-nums">
-              {tierSummary.metro.women.toLocaleString('en-IN')}{' '}
-              <span className="text-xs font-normal text-[#646058]">women (33.6%)</span>
-            </div>
-            <div className="text-xs font-medium text-[#646058] mt-0.5 tabular-nums">
-              ₹{tierSummary.metro.disbursedCr.toFixed(1)} Cr disbursed · Pune & Thane
-            </div>
-          </div>
-          <p className="text-[11px] text-[#646058] leading-relaxed pt-2 border-t border-[#E5DFD3]">
-            Highest nominal wage lift (+31% in Pune manufacturing), but urban relocation drop-off and 142 GPS anomalies flagged in Thane.
-          </p>
-        </div>
-      </div>
+          {selectedDistrictId && (
+            <>
+              <ChevronRight size={13} className="text-[#8C8479]" />
+              <button
+                type="button"
+                onClick={() => handleBreadcrumbClick(3)}
+                className={`capitalize transition-colors hover:text-[#0B4A7D] cursor-pointer ${
+                  !selectedNgoId ? 'font-semibold text-[#0B4A7D]' : 'text-[#6B655C]'
+                }`}
+              >
+                {selectedDistrictId} District
+              </button>
+            </>
+          )}
 
-      {/* ── MAIN VISUAL: DISTRICT OUTCOME & EQUITY MATRIX ── */}
-      <div className="rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] overflow-hidden shadow-xs">
-        {/* Table Controls Header */}
-        <div className="p-4 sm:p-5 border-b border-[#E5DFD3] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {selectedNgoId && (
+            <>
+              <ChevronRight size={13} className="text-[#8C8479]" />
+              <button
+                type="button"
+                onClick={() => handleBreadcrumbClick(4)}
+                className={`transition-colors hover:text-[#0B4A7D] cursor-pointer ${
+                  !selectedCentre ? 'font-semibold text-[#0B4A7D]' : 'text-[#6B655C]'
+                }`}
+              >
+                {districtAllocations.find((a) => a.ngoId === selectedNgoId)?.ngoName || selectedNgoId}
+              </button>
+            </>
+          )}
+
+          {selectedCentre && (
+            <>
+              <ChevronRight size={13} className="text-[#8C8479]" />
+              <span className="font-semibold text-[#0B4A7D] truncate max-w-[200px]">
+                {selectedCentre.name}
+              </span>
+            </>
+          )}
+        </nav>
+
+        {/* Title, Subtitle & Interactive Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h2 className="font-narrative text-lg font-normal text-[#1C1917]">
-              District Outcome & Governance Matrix
-            </h2>
+            <div className="flex items-center gap-2">
+              <h1 className="font-narrative text-2xl font-bold text-[#1C1917] tracking-tight">
+                Geographic Footprint &amp; Spatial Impact
+              </h1>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#E7F0F7] text-[#0B4A7D] border border-[#0B4A7D]/20">
+                5-Level Spatial Explorer
+              </span>
+            </div>
             <p className="text-xs text-[#6B655C] mt-0.5">
-              Click any district row to view local baseline barriers and operational actions.
+              Explore localized performance across 3 operating states, 6 canonical districts, 20 operational centres, and 42,850 enrolled women.
             </p>
           </div>
 
-          {/* Metric Highlight Selector Pills */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8479] mr-1">
-              Highlight:
-            </span>
-            {(
-              [
-                { key: 'outcome', label: 'Outcome Lift' },
-                { key: 'grant', label: 'Grant Deployed' },
-                { key: 'retention', label: 'Retention / Fluency' },
-                { key: 'audit', label: 'Audit Score' },
-              ] as const
-            ).map((m) => (
+          {/* Controls: Program Filter, Layer Switcher, Formula Popover */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Program Filter Pills */}
+            <div className="flex items-center bg-[#FCFBF8] border border-[#E5DFD3] rounded-xl p-0.5 text-xs shadow-2xs">
               <button
-                key={m.key}
                 type="button"
-                onClick={() => setHighlightedMetric(m.key)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
-                  highlightedMetric === m.key
-                    ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                    : 'bg-[#F7F4ED] border border-[#E5DFD3] text-[#6B655C] hover:text-[#1C1917]'
+                onClick={() => setProgramFilter('all')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  programFilter === 'all'
+                    ? 'bg-[#0B4A7D] text-white shadow-xs'
+                    : 'text-[#6B655C] hover:text-[#1C1917]'
                 }`}
               >
-                {m.label}
+                All Programs
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Scrollable Clean Table for Desktop (>= md) */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-[#F7F4ED] text-[#8C8479] font-medium border-b border-[#E5DFD3] select-none text-[11px]">
-                <th className="py-3 px-4 font-semibold text-[#1C1917]">District & State</th>
-                <th className="py-3 px-4 font-semibold text-[#1C1917]">Tier</th>
-                <th className="py-3 px-4 font-semibold text-[#1C1917]">Assigned NGO Partner</th>
-                <th className="py-3 px-4 font-semibold text-[#1C1917]">Programme</th>
-                <th className="py-3 px-4 text-right font-semibold text-[#1C1917]">Women Tracked</th>
-                <th className="py-3 px-4 text-right font-semibold text-[#1C1917]">Grant Deployed</th>
-                <th className="py-3 px-4 text-right font-semibold text-[#1C1917]">Outcome Lift</th>
-                <th className="py-3 px-4 text-center font-semibold text-[#1C1917]">Audit Integrity</th>
-                <th className="py-3 px-4 text-right font-semibold text-[#1C1917]">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5DFD3]">
-              {filteredDistricts.map((ngo) => {
-                const isHeld = ngo.trancheHeld || ngo.auditStatus === 'flagged';
-                const isSelected = selectedDistrictNgo?.ngoId === ngo.ngoId;
-
-                return (
-                  <tr
-                    key={ngo.ngoId}
-                    onClick={() => setSelectedDistrictNgo(ngo)}
-                    className={`transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#E7F0F7]/70'
-                        : isHeld
-                        ? 'hover:bg-[#FCECEB]/60'
-                        : 'hover:bg-[#F7F4ED]/60'
-                    }`}
-                  >
-                    {/* District & State */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-1.5 font-semibold text-[#1C1917]">
-                        <MapPin size={14} className={isHeld ? 'text-[#B42318]' : 'text-[#0B4A7D]'} />
-                        <span>{ngo.district}</span>
-                      </div>
-                      <span className="text-[10px] text-[#8C8479] pl-5 block">{ngo.state}</span>
-                    </td>
-
-                    {/* Tier Badge */}
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          ngo.tier === 'Rural'
-                            ? 'bg-[#E8F3EC] text-[#2E6B4E]'
-                            : ngo.tier === 'Tier-2'
-                            ? 'bg-[#FAEDE6] text-[#B5532A]'
-                            : 'bg-[#EAE6DD] text-[#1C1917]'
-                        }`}
-                      >
-                        {ngo.tier}
-                      </span>
-                    </td>
-
-                    {/* Assigned NGO */}
-                    <td className="py-3.5 px-4 font-semibold text-[#1C1917]">
-                      {ngo.ngoName}
-                    </td>
-
-                    {/* Programme */}
-                    <td className="py-3.5 px-4 text-[11px] text-[#6B655C]">
-                      {ngo.program === 'micro-skilling' ? 'Micro-Skilling' : "Women's Literacy"}
-                    </td>
-
-                    {/* Women Tracked */}
-                    <td className="py-3.5 px-4 text-right font-semibold tabular-nums text-[#1C1917]">
-                      {ngo.enrolled.toLocaleString('en-IN')}
-                    </td>
-
-                    {/* Grant Deployed */}
-                    <td
-                      className={`py-3.5 px-4 text-right tabular-nums font-semibold ${
-                        highlightedMetric === 'grant' ? 'text-[#0B4A7D] bg-[#E7F0F7]/40' : 'text-[#1C1917]'
-                      }`}
-                    >
-                      ₹{(ngo.grantDisbursed / 10000000).toFixed(2)} Cr
-                      <span className="text-[10px] text-[#8C8479] block font-normal">
-                        {ngo.utilizationRate}% utilized
-                      </span>
-                    </td>
-
-                    {/* Outcome Lift */}
-                    <td
-                      className={`py-3.5 px-4 text-right tabular-nums font-semibold ${
-                        highlightedMetric === 'outcome' ? 'text-[#0B4A7D] bg-[#E7F0F7]/40' : 'text-[#1C1917]'
-                      }`}
-                    >
-                      {ngo.program === 'micro-skilling' ? (
-                        <>
-                          <span className={isHeld ? 'text-[#A86414]' : 'text-[#2E6B4E]'}>
-                            +{ngo.rawLiftPct}% lift
-                          </span>
-                          <span className="text-[10px] text-[#8C8479] block font-normal">
-                            +₹{ngo.extraMonthlyIncome.toLocaleString('en-IN')}/mo
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-[#2E6B4E]">
-                            {ngo.district === 'Jabalpur' ? '83.0%' : '81.0%'} FLN 3
-                          </span>
-                          <span className="text-[10px] text-[#8C8479] block font-normal">
-                            Grade-level fluency
-                          </span>
-                        </>
-                      )}
-                    </td>
-
-                    {/* Audit Integrity */}
-                    <td className="py-3.5 px-4 text-center">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold tabular-nums ${
-                          ngo.auditIntegrityScore >= 90
-                            ? 'bg-[#E8F3EC] text-[#2E6B4E]'
-                            : ngo.auditIntegrityScore >= 80
-                            ? 'bg-[#FDF4E3] text-[#A86414]'
-                            : 'bg-[#FCECEB] text-[#B42318]'
-                        }`}
-                      >
-                        {ngo.auditIntegrityScore}/100
-                      </span>
-                    </td>
-
-                    {/* Action */}
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDistrictNgo(ngo);
-                        }}
-                        className="text-[11px] font-semibold text-[#0B4A7D] hover:underline flex items-center justify-end gap-1 cursor-pointer"
-                      >
-                        <span>Details</span>
-                        <ArrowRight size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Scannable Cards View for Mobile (< md) */}
-        <div className="md:hidden divide-y divide-[#E5DFD3]">
-          {filteredDistricts.map((ngo) => {
-            const isHeld = ngo.trancheHeld || ngo.auditStatus === 'flagged';
-            const isSelected = selectedDistrictNgo?.ngoId === ngo.ngoId;
-
-            return (
-              <div
-                key={ngo.ngoId}
-                onClick={() => setSelectedDistrictNgo(ngo)}
-                className={`p-4 space-y-3 cursor-pointer transition-colors ${
-                  isSelected ? 'bg-[#E7F0F7]/70' : isHeld ? 'hover:bg-[#FCECEB]/60' : 'hover:bg-[#F7F4ED]/60'
+              <button
+                type="button"
+                onClick={() => setProgramFilter('micro-skilling')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  programFilter === 'micro-skilling'
+                    ? 'bg-[#0B4A7D] text-white shadow-xs'
+                    : 'text-[#6B655C] hover:text-[#1C1917]'
                 }`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin size={16} className={isHeld ? 'text-[#B42318]' : 'text-[#0B4A7D]'} />
-                    <div>
-                      <div className="font-semibold text-sm text-[#1C1917]">{ngo.district}</div>
-                      <div className="text-[10px] text-[#8C8479]">{ngo.state}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        ngo.tier === 'Rural'
-                          ? 'bg-[#E8F3EC] text-[#2E6B4E]'
-                          : ngo.tier === 'Tier-2'
-                          ? 'bg-[#FAEDE6] text-[#B5532A]'
-                          : 'bg-[#EAE6DD] text-[#1C1917]'
-                      }`}
-                    >
-                      {ngo.tier}
-                    </span>
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tabular-nums ${
-                        ngo.auditIntegrityScore >= 90
-                          ? 'bg-[#E8F3EC] text-[#2E6B4E]'
-                          : ngo.auditIntegrityScore >= 80
-                          ? 'bg-[#FDF4E3] text-[#A86414]'
-                          : 'bg-[#FCECEB] text-[#B42318]'
-                      }`}
-                    >
-                      {ngo.auditIntegrityScore}/100
-                    </span>
-                  </div>
-                </div>
+                Micro-Skilling
+              </button>
+              <button
+                type="button"
+                onClick={() => setProgramFilter('literacy')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  programFilter === 'literacy'
+                    ? 'bg-[#0B4A7D] text-white shadow-xs'
+                    : 'text-[#6B655C] hover:text-[#1C1917]'
+                }`}
+              >
+                Women's Literacy
+              </button>
+            </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-[#E5DFD3]/60">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-[#8C8479] block">Partner & Programme</span>
-                    <span className="font-medium text-[#1C1917] block truncate">{ngo.ngoName}</span>
-                    <span className="text-[10px] text-[#6B655C]">{ngo.program === 'micro-skilling' ? 'Micro-Skilling' : "Women's Literacy"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-[#8C8479] block">Women & Deployed</span>
-                    <span className="font-semibold text-[#1C1917] tabular-nums">{ngo.enrolled.toLocaleString('en-IN')} women</span>
-                    <span className="text-[10px] text-[#0B4A7D] block font-semibold">₹{(ngo.grantDisbursed / 10000000).toFixed(2)} Cr ({ngo.utilizationRate}%)</span>
-                  </div>
-                </div>
+            {/* Layer Switcher Pills */}
+            <div className="flex items-center bg-[#FCFBF8] border border-[#E5DFD3] rounded-xl p-0.5 text-xs shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setActiveLayer('outcomes')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  activeLayer === 'outcomes'
+                    ? 'bg-[#2E6B4E] text-white shadow-xs'
+                    : 'text-[#6B655C] hover:text-[#1C1917]'
+                }`}
+                title="Outcome Index Layer (Composite Quality)"
+              >
+                <TrendingUp size={12} />
+                <span>Outcomes</span>
+              </button>
 
-                <div className="flex items-center justify-between pt-1">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-[#8C8479] block">Outcome</span>
-                    {ngo.program === 'micro-skilling' ? (
-                      <span className={`text-xs font-semibold ${isHeld ? 'text-[#A86414]' : 'text-[#2E6B4E]'}`}>
-                        +{ngo.rawLiftPct}% lift (+₹{ngo.extraMonthlyIncome.toLocaleString('en-IN')}/mo)
-                      </span>
-                    ) : (
-                      <span className="text-xs font-semibold text-[#2E6B4E]">
-                        {ngo.district === 'Jabalpur' ? '83.0%' : '81.0%'} FLN 3
-                      </span>
-                    )}
+              <button
+                type="button"
+                onClick={() => setActiveLayer('cost_efficiency')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  activeLayer === 'cost_efficiency'
+                    ? 'bg-[#0B4A7D] text-white shadow-xs'
+                    : 'text-[#6B655C] hover:text-[#1C1917]'
+                }`}
+                title="Cost per Outcome & SROI Multiplier"
+              >
+                <DollarSign size={12} />
+                <span>Cost / SROI</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveLayer('service_gaps')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  activeLayer === 'service_gaps'
+                    ? 'bg-[#B5532A] text-white shadow-xs'
+                    : 'text-[#6B655C] hover:text-[#1C1917]'
+                }`}
+                title="Service Gaps & Unallocated Blocks"
+              >
+                <AlertTriangle size={12} />
+                <span>Service Gaps</span>
+              </button>
+            </div>
+
+            {/* Formula Popover Trigger */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFormulaOpen(!formulaOpen)}
+                className={`p-1.5 rounded-xl border text-xs font-medium flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+                  formulaOpen
+                    ? 'bg-[#0B4A7D] text-white border-[#0B4A7D]'
+                    : 'bg-[#FCFBF8] text-[#6B655C] border-[#E5DFD3] hover:text-[#1C1917]'
+                }`}
+                title="Impact Index Formula"
+              >
+                <Info size={14} />
+                <span className="hidden sm:inline">Formula</span>
+              </button>
+
+              {formulaOpen && (
+                <div className="absolute right-0 top-9 z-30 w-80 p-4 rounded-xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xl text-xs space-y-2">
+                  <div className="flex items-center justify-between border-b border-[#E5DFD3] pb-2">
+                    <span className="font-bold text-[#1C1917]">Composite Impact Index (0–100)</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormulaOpen(false)}
+                      className="text-[#8C8479] hover:text-[#1C1917]"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedDistrictNgo(ngo);
-                    }}
-                    className="text-xs font-semibold text-[#0B4A7D] hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Inspect Cluster</span>
-                    <ArrowRight size={12} />
-                  </button>
+                  <p className="text-[#6B655C] leading-relaxed">
+                    Weighted algorithmic score normalizing quantitative gains and governance rigor:
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-[#F7F4ED] border border-[#E5DFD3] font-mono text-[11px] text-[#1C1917] space-y-1">
+                    <div>0.40 × Completion Rate (%)</div>
+                    <div>+ 0.30 × SROI Multiplier (Norm)</div>
+                    <div>+ 0.20 × Audit Integrity Score</div>
+                    <div>+ 0.10 × GPS Verification Rate</div>
+                  </div>
+                  <p className="text-[10px] text-[#8C8479]">
+                    Pune District Peer Mean: <strong className="text-[#1C1917]">82.0</strong> · Bajaj Portfolio Benchmark: <strong className="text-[#1C1917]">76.8</strong>.
+                  </p>
                 </div>
-              </div>
-            );
-          })}
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── 420px DISTRICT ACTION DRAWER (SLIDE-OVER IN ANIMATEPRESENCE) ── */}
+      {/* ── TWO-COLUMN WORKSPACE: LEFT 58% MAP / RIGHT 42% CONTEXTUAL BENCHMARKING PANEL ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* LEFT COLUMN: SPATIAL MAP (7 COLUMNS / ~58%) */}
+        <div className="lg:col-span-7">
+          <div className="sticky top-20">
+            <SpatialMap
+              selectedDistrictId={selectedDistrictId}
+              selectedState={selectedState}
+              selectedNgoId={selectedNgoId}
+              activeLayer={activeLayer}
+              onSelectDistrict={(dist) => {
+                setSelectedDistrictId(dist);
+                if (dist) {
+                  const alloc = districtAllocations.find((a) => a.districtKey === dist);
+                  if (alloc) setSelectedState(alloc.state);
+                }
+                setSelectedNgoId(null);
+                setSelectedCentre(null);
+              }}
+              onSelectState={(st) => {
+                setSelectedState(st);
+                setSelectedDistrictId(null);
+                setSelectedNgoId(null);
+                setSelectedCentre(null);
+              }}
+              onSelectNgo={(ngo) => {
+                setSelectedNgoId(ngo);
+                setSelectedCentre(null);
+              }}
+              onSelectCentre={(centre) => {
+                setSelectedCentre(centre);
+                const alloc = districtAllocations.find((a) => a.district.toLowerCase() === centre.district.toLowerCase());
+                if (alloc) {
+                  setSelectedDistrictId(alloc.districtKey);
+                  setSelectedState(alloc.state);
+                }
+              }}
+              onNavigateToAudit={() => onNavigate?.('operations')}
+            />
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: CONTEXTUAL BENCHMARKING PANEL (5 COLUMNS / ~42%) */}
+        <div className="lg:col-span-5 space-y-4">
+          <AnimatePresence mode="wait">
+            {/* ── LEVEL 1: ALL INDIA / STATE LEVEL OVERVIEW ── */}
+            {!selectedDistrictId && (
+              <motion.div
+                key="level-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.18 }}
+                className="space-y-4"
+              >
+                {/* State Rollups Header Card */}
+                <div className="p-4 rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#E5DFD3] pb-2.5">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8479]">
+                        Operational Territories
+                      </span>
+                      <h3 className="font-narrative text-base font-bold text-[#1C1917]">
+                        State Portfolio Distribution
+                      </h3>
+                    </div>
+                    <span className="text-xs font-semibold text-[#0B4A7D] bg-[#E7F0F7] px-2 py-0.5 rounded-full border border-[#0B4A7D]/20">
+                      3 States · 6 Districts
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {stateRollups.map((rollup) => {
+                      const isSelected = selectedState === rollup.state;
+                      return (
+                        <div
+                          key={rollup.state}
+                          onClick={() => setSelectedState(isSelected ? null : rollup.state)}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#E7F0F7] border-[#0B4A7D] shadow-xs'
+                              : 'bg-[#F7F4ED] border-[#E5DFD3] hover:border-[#0B4A7D]/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-[#1C1917] flex items-center gap-1.5">
+                              <MapPin size={13} className={isSelected ? 'text-[#0B4A7D]' : 'text-[#8C8479]'} />
+                              <span>{rollup.state}</span>
+                            </span>
+                            <span className="text-[11px] font-semibold text-[#0B4A7D] tabular-nums">
+                              {rollup.women.toLocaleString('en-IN')} women ({rollup.pct}%)
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-[11px] mt-2 pt-2 border-t border-[#E5DFD3]/60">
+                            <div>
+                              <span className="text-[#8C8479] block text-[10px]">CORPUS DISBURSED</span>
+                              <span className="font-semibold text-[#1C1917]">₹{rollup.grantDisbursedCr.toFixed(1)} Cr</span>
+                            </div>
+                            <div>
+                              <span className="text-[#8C8479] block text-[10px]">ACTIVE DISTRICTS</span>
+                              <span className="font-semibold text-[#1C1917] truncate">{rollup.districts.join(', ')}</span>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-[#6B655C] mt-1.5 line-clamp-1">{rollup.liftDescription}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* District Drill-down List (Click to enter Level 2) */}
+                <div className="p-4 rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#1C1917]">
+                      {selectedState ? `${selectedState} Districts` : 'All 6 Operating Districts'}
+                    </span>
+                    <span className="text-[11px] text-[#8C8479]">Click to view peer comparison</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {filteredAllocations.map((alloc) => (
+                      <div
+                        key={alloc.id}
+                        onClick={() => {
+                          setSelectedDistrictId(alloc.districtKey);
+                          setSelectedState(alloc.state);
+                        }}
+                        className="p-3 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] hover:border-[#0B4A7D] hover:bg-[#FCFBF8] transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-[#1C1917] group-hover:text-[#0B4A7D] transition-colors">
+                              {alloc.district}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#EAE6DD] text-[#6B655C]">
+                              {alloc.tier}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-[#6B655C] block">
+                            {alloc.ngoName} · {alloc.women.toLocaleString('en-IN')} women
+                          </span>
+                        </div>
+
+                        <div className="text-right flex-shrink-0 flex items-center gap-3">
+                          <div>
+                            <span className="text-[10px] text-[#8C8479] block">IMPACT INDEX</span>
+                            <span className="font-bold text-xs text-[#0B4A7D] tabular-nums">
+                              {alloc.impactIndex} / 100
+                            </span>
+                          </div>
+                          <ChevronRight size={14} className="text-[#8C8479] group-hover:text-[#0B4A7D] transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── LEVEL 2: DISTRICT LEVEL DRILL-DOWN (e.g. PUNE / THANE) ── */}
+            {selectedDistrictId && activeDistrictSummary && (
+              <motion.div
+                key={`level-2-${selectedDistrictId}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.18 }}
+                className="space-y-4"
+              >
+                {/* District Overview Card */}
+                <div className="p-4 rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xs space-y-3">
+                  <div className="flex items-start justify-between border-b border-[#E5DFD3] pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <MapPin size={18} className="text-[#0B4A7D]" />
+                        <h2 className="font-narrative text-lg font-bold text-[#1C1917]">
+                          {activeDistrictSummary.name} District
+                        </h2>
+                        <span className="text-[10px] font-semibold text-[#8C8479] bg-[#EAE6DD] px-2 py-0.5 rounded">
+                          {activeDistrictSummary.tier}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6B655C] mt-0.5">
+                        {activeDistrictSummary.state} · {activeDistrictSummary.ngos.length} Partner Organization{activeDistrictSummary.ngos.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDistrictId(null);
+                        setSelectedNgoId(null);
+                        setSelectedCentre(null);
+                      }}
+                      className="p-1 rounded-lg text-[#8C8479] hover:text-[#1C1917] cursor-pointer"
+                      title="Return to All Districts"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* 4 District Stat Badges */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
+                      <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Total Beneficiaries</span>
+                      <span className="text-sm font-bold text-[#1C1917] tabular-nums">
+                        {activeDistrictSummary.totalWomen.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
+                      <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Corpus Disbursed</span>
+                      <span className="text-sm font-bold text-[#1C1917] tabular-nums">
+                        ₹{activeDistrictSummary.totalDisbursedCr.toFixed(1)} Cr
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
+                      <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">District Mean Index</span>
+                      <span className="text-sm font-bold text-[#0B4A7D] tabular-nums">
+                        {activeDistrictSummary.weightedImpact} / 100
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
+                      <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Portfolio Benchmark</span>
+                      <span className="text-sm font-bold text-[#2E6B4E] tabular-nums">
+                        {portfolioBenchmarks.portfolioWeightedMean} / 100
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── SIDE-BY-SIDE PEER COMPARISON BARS (PUNE PEERS) ── */}
+                <div className="p-4 rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#E5DFD3] pb-2">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8479]">
+                        Controlled Cohort Benchmark
+                      </span>
+                      <h3 className="font-narrative text-sm font-bold text-[#1C1917]">
+                        NGO Peer Performance in {activeDistrictSummary.name}
+                      </h3>
+                    </div>
+                    <span className="text-[10px] text-[#6B655C]">
+                      Click NGO to inspect centres
+                    </span>
+                  </div>
+
+                  {/* Horizontal Bar Chart with Benchmark Lines */}
+                  <div className="space-y-4 pt-1">
+                    {/* Benchmark Guide Legend */}
+                    <div className="flex items-center justify-between text-[10px] px-1 text-[#6B655C] border-b border-[#E5DFD3]/40 pb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-0.5 bg-[#0B4A7D] inline-block border-t border-dashed border-[#0B4A7D]" />
+                        <span>District Cohort Mean ({activeDistrictSummary.weightedImpact})</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-0.5 bg-[#1C1917] inline-block border-t border-dotted border-[#1C1917]" />
+                        <span>Portfolio Benchmark ({portfolioBenchmarks.portfolioWeightedMean})</span>
+                      </span>
+                    </div>
+
+                    {/* NGO Horizontal Bars */}
+                    <div className="space-y-3">
+                      {activeDistrictAllocations.map((alloc) => {
+                        const isSelected = selectedNgoId === alloc.ngoId;
+                        const isLeader = alloc.impactIndex >= activeDistrictSummary.weightedImpact;
+
+                        return (
+                          <div
+                            key={alloc.id}
+                            onClick={() => setSelectedNgoId(isSelected ? null : alloc.ngoId)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#E7F0F7] border-[#0B4A7D] shadow-xs'
+                                : 'bg-[#F7F4ED] border-[#E5DFD3] hover:border-[#0B4A7D]/40'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="font-bold text-[#1C1917] flex items-center gap-1.5">
+                                <span>{alloc.ngoName}</span>
+                                {isLeader && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#E8F3EC] text-[#2E6B4E] font-semibold">
+                                    Cohort Leader
+                                  </span>
+                                )}
+                              </span>
+                              <span className="font-bold text-[#0B4A7D] tabular-nums">
+                                {alloc.impactIndex} / 100
+                              </span>
+                            </div>
+
+                            {/* Bar with Marker for Portfolio Benchmark */}
+                            <div className="relative w-full h-3 bg-[#E5DFD3] rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  alloc.auditStatus === 'flagged'
+                                    ? 'bg-[#B42318]'
+                                    : alloc.impactIndex >= 80
+                                    ? 'bg-[#2E6B4E]'
+                                    : 'bg-[#0B4A7D]'
+                                }`}
+                                style={{ width: `${alloc.impactIndex}%` }}
+                              />
+                            </div>
+
+                            {/* Sub-metrics */}
+                            <div className="grid grid-cols-3 gap-2 text-[10px] text-[#6B655C] mt-2 pt-1 border-t border-[#E5DFD3]/60">
+                              <div>
+                                <span className="text-[#8C8479] block">BENEFICIARIES</span>
+                                <span className="font-semibold text-[#1C1917]">{alloc.women.toLocaleString('en-IN')}</span>
+                              </div>
+                              <div>
+                                <span className="text-[#8C8479] block">SROI RATIO</span>
+                                <span className="font-semibold text-[#1C1917]">₹{alloc.sroiMultiplier} : ₹1</span>
+                              </div>
+                              <div>
+                                <span className="text-[#8C8479] block">AUDIT SCORE</span>
+                                <span className={`font-semibold ${alloc.auditScore < 85 ? 'text-[#B42318]' : 'text-[#2E6B4E]'}`}>
+                                  {alloc.auditScore}/100
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Attribution & Methodology Note */}
+                    <div className="p-2.5 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] text-[11px] text-[#6B655C] leading-relaxed">
+                      <p>
+                        Calculated across {activeDistrictSummary.totalWomen.toLocaleString('en-IN')} verified beneficiaries in {activeDistrictSummary.name}.
+                        {activeDistrictSummary.name === 'Pune' && (
+                          <span className="text-[#1C1917] font-medium block mt-0.5">
+                            Pratham leads the Pune cohort (+2.2 pts above district mean, +7.4 pts above portfolio benchmark) with ₹3.42 SROI.
+                          </span>
+                        )}
+                        {activeDistrictSummary.name === 'Thane' && (
+                          <span className="text-[#B42318] font-medium block mt-0.5">
+                            Thane Urban cluster is on audit escrow hold pending verification of 142 GPS anomaly flags in Kalwa Ward.
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── SERVICE GAP BLOCKS (INTERACTIVE RESERVE EARMARKING) ── */}
+                {districtServiceGaps.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-[#E5DFD3] pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <AlertTriangle size={15} className="text-[#B5532A]" />
+                        <h3 className="font-narrative text-sm font-bold text-[#1C1917]">
+                          Service Gap Blocks ({districtServiceGaps.length})
+                        </h3>
+                      </div>
+                      <span className="text-[10px] text-[#8C8479]">
+                        Reserve: ₹{portfolio.reserveCr.toFixed(2)} Cr
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {districtServiceGaps.map((block) => (
+                        <div
+                          key={block.id}
+                          className="p-3 rounded-xl bg-[#FDF8F5] border border-[#B5532A]/20 space-y-2"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="font-bold text-xs text-[#1C1917] block">
+                                {block.name}
+                              </span>
+                              <span className="text-[10px] text-[#6B655C]">
+                                {block.unservedWomen.toLocaleString('en-IN')} unserved women · 0 Active Centres
+                              </span>
+                            </div>
+
+                            <span className="text-xs font-bold text-[#B5532A] tabular-nums">
+                              ₹{block.recommendedAllocationCr.toFixed(2)} Cr req.
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-[#B5532A]/15">
+                            <span className="text-[10px] text-[#8C8479]">
+                              {block.status === 'earmarked' ? (
+                                <span className="text-[#2E6B4E] font-semibold flex items-center gap-1">
+                                  <CheckCircle2 size={12} />
+                                  <span>Earmarked on {block.earmarkedDate || 'Today'}</span>
+                                </span>
+                              ) : (
+                                'Awaiting Funder Allocation'
+                              )}
+                            </span>
+
+                            {block.status === 'unallocated' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleEarmark(block)}
+                                className="px-2.5 py-1 rounded-lg bg-[#B5532A] text-white text-[11px] font-semibold hover:bg-[#96401E] transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+                              >
+                                Earmark from Reserve
+                              </button>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded bg-[#E8F3EC] text-[#2E6B4E] text-[10px] font-bold border border-[#2E6B4E]/20">
+                                ✓ Committed
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── OPERATIONAL CENTRES LIST (LEVEL 3 & 4) ── */}
+                <div className="p-4 rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#E5DFD3] pb-2">
+                    <span className="text-xs font-bold text-[#1C1917]">
+                      Operational Centres in {activeDistrictSummary.name} ({activeCentres.length})
+                    </span>
+                    <span className="text-[10px] text-[#8C8479]">
+                      Click centre to inspect DPDP records
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {activeCentres.map((centre) => {
+                      const isSelected = selectedCentre?.id === centre.id;
+                      return (
+                        <div
+                          key={centre.id}
+                          onClick={() => setSelectedCentre(isSelected ? null : centre)}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#E7F0F7] border-[#0B4A7D] shadow-xs'
+                              : 'bg-[#F7F4ED] border-[#E5DFD3] hover:border-[#0B4A7D]/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-[#1C1917] flex items-center gap-1.5">
+                              <MapPin size={13} className={isSelected ? 'text-[#0B4A7D]' : 'text-[#8C8479]'} />
+                              <span>{centre.name}</span>
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                                centre.status === 'flagged'
+                                  ? 'bg-[#FCECEB] text-[#B42318]'
+                                  : 'bg-[#E8F3EC] text-[#2E6B4E]'
+                              }`}
+                            >
+                              {centre.status === 'flagged' ? 'Audit Flagged' : 'Active'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 text-[10px] text-[#6B655C] mt-2 pt-1 border-t border-[#E5DFD3]/60">
+                            <div>
+                              <span className="text-[#8C8479] block">BENEFICIARIES</span>
+                              <span className="font-semibold text-[#1C1917]">{centre.beneficiaries} women</span>
+                            </div>
+                            <div>
+                              <span className="text-[#8C8479] block">COMPLETION</span>
+                              <span className="font-semibold text-[#1C1917]">{centre.completionPct}%</span>
+                            </div>
+                            <div>
+                              <span className="text-[#8C8479] block">OUTCOME LIFT</span>
+                              <span className="font-semibold text-[#2E6B4E]">{centre.outcomeLift}</span>
+                            </div>
+                          </div>
+
+                          {/* Level 5 Trigger Button if centre is selected */}
+                          {isSelected && (
+                            <div className="mt-3 pt-2 border-t border-[#0B4A7D]/20 flex items-center justify-between">
+                              <span className="text-[10px] text-[#0B4A7D] font-medium flex items-center gap-1">
+                                <Lock size={11} />
+                                <span>DPDP Privacy Mode</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const pool = SAMPLE_BENEFICIARIES[selectedDistrictId || 'default'] || SAMPLE_BENEFICIARIES.default;
+                                  setInspectingBeneficiary(pool[0]);
+                                }}
+                                className="px-3 py-1 rounded-lg bg-[#0B4A7D] text-white text-[11px] font-semibold hover:bg-[#083A63] transition-transform active:scale-[0.98] flex items-center gap-1 cursor-pointer shadow-2xs"
+                              >
+                                <span>Inspect Authorized Beneficiaries →</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* ── BOTTOM SECTION: FULL-WIDTH DISTRICT SUMMARY MATRIX ── */}
+      <section className="space-y-3 pt-4 border-t border-[#E5DFD3]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="font-narrative text-lg font-bold text-[#1C1917]">
+              District Comparative Summary Matrix
+            </h2>
+            <p className="text-xs text-[#6B655C]">
+              Unified cross-district scorecard reconciling 42,850 women and ₹38.4 Cr deployed corpus.
+            </p>
+          </div>
+          <span className="text-[11px] text-[#8C8479] self-start sm:self-auto">
+            Showing 6 of 6 Canonical Districts
+          </span>
+        </div>
+
+        {/* Desktop High-Density Table */}
+        <div className="hidden md:block rounded-2xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#F7F4ED] border-b border-[#E5DFD3] text-[#8C8479] text-[10px] uppercase font-bold tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">District &amp; State</th>
+                  <th className="py-3 px-3">Operating Partner</th>
+                  <th className="py-3 px-3">Program Focus</th>
+                  <th className="py-3 px-3 text-right">Beneficiaries</th>
+                  <th className="py-3 px-3 text-right">Disbursed (Cr)</th>
+                  <th className="py-3 px-3 text-right">Cost / Outcome</th>
+                  <th className="py-3 px-3 text-right">SROI Ratio</th>
+                  <th className="py-3 px-3 text-center">Audit Status</th>
+                  <th className="py-3 px-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E5DFD3]/70">
+                {districtAllocations.map((alloc) => {
+                  const isSelected = selectedDistrictId === alloc.districtKey;
+                  return (
+                    <tr
+                      key={alloc.id}
+                      className={`hover:bg-[#F7F4ED]/60 transition-colors ${
+                        isSelected ? 'bg-[#E7F0F7]/50' : ''
+                      }`}
+                    >
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-[#1C1917] flex items-center gap-1.5">
+                          <span>{alloc.district}</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#EAE6DD] text-[#6B655C] font-normal">
+                            {alloc.tier}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#8C8479]">{alloc.state}</span>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <span className="font-semibold text-[#1C1917] block">{alloc.ngoName}</span>
+                        <span className="text-[10px] text-[#6B655C]">{alloc.centresCount} Active Centres</span>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <span className="text-[#6B655C] capitalize">
+                          {alloc.program.replace('-', ' ')}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3 text-right font-medium text-[#1C1917] tabular-nums">
+                        {alloc.women.toLocaleString('en-IN')}
+                      </td>
+
+                      <td className="py-3 px-3 text-right font-medium text-[#1C1917] tabular-nums">
+                        ₹{(alloc.grantDisbursed / 10000000).toFixed(2)} Cr
+                      </td>
+
+                      <td className="py-3 px-3 text-right font-medium text-[#1C1917] tabular-nums">
+                        ₹{alloc.costPerOutcome.toLocaleString('en-IN')}
+                      </td>
+
+                      <td className="py-3 px-3 text-right font-bold text-[#0B4A7D] tabular-nums">
+                        ₹{alloc.sroiMultiplier} : ₹1
+                      </td>
+
+                      <td className="py-3 px-3 text-center">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                            alloc.auditStatus === 'flagged'
+                              ? 'bg-[#FCECEB] text-[#B42318]'
+                              : 'bg-[#E8F3EC] text-[#2E6B4E]'
+                          }`}
+                        >
+                          {alloc.auditStatus === 'flagged' ? '142 Flags' : `${alloc.auditScore}/100`}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDistrictId(alloc.districtKey);
+                            setSelectedState(alloc.state);
+                            window.scrollTo({ top: 120, behavior: 'smooth' });
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-[#E5DFD3] text-[#0B4A7D] hover:bg-[#0B4A7D] hover:text-white transition-all text-xs font-semibold cursor-pointer"
+                        >
+                          Explore Spatial →
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Mobile Responsive Cards */}
+        <div className="md:hidden space-y-3">
+          {districtAllocations.map((alloc) => (
+            <div
+              key={alloc.id}
+              className="p-4 rounded-xl bg-[#FCFBF8] border border-[#E5DFD3] shadow-2xs space-y-3"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-sm text-[#1C1917]">{alloc.district}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#EAE6DD] text-[#6B655C]">
+                      {alloc.tier}
+                    </span>
+                  </div>
+                  <span className="text-xs text-[#6B655C]">{alloc.state} · {alloc.ngoName}</span>
+                </div>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                    alloc.auditStatus === 'flagged' ? 'bg-[#FCECEB] text-[#B42318]' : 'bg-[#E8F3EC] text-[#2E6B4E]'
+                  }`}
+                >
+                  {alloc.auditScore}/100
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-[#E5DFD3]/60">
+                <div>
+                  <span className="text-[#8C8479] text-[10px] block">BENEFICIARIES</span>
+                  <span className="font-semibold text-[#1C1917]">{alloc.women.toLocaleString('en-IN')} women</span>
+                </div>
+                <div>
+                  <span className="text-[#8C8479] text-[10px] block">DISBURSED</span>
+                  <span className="font-semibold text-[#1C1917]">₹{(alloc.grantDisbursed / 10000000).toFixed(2)} Cr</span>
+                </div>
+                <div>
+                  <span className="text-[#8C8479] text-[10px] block">SROI MULTIPLIER</span>
+                  <span className="font-bold text-[#0B4A7D]">₹{alloc.sroiMultiplier} : ₹1</span>
+                </div>
+                <div>
+                  <span className="text-[#8C8479] text-[10px] block">IMPACT INDEX</span>
+                  <span className="font-bold text-[#2E6B4E]">{alloc.impactIndex} / 100</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDistrictId(alloc.districtKey);
+                  setSelectedState(alloc.state);
+                  window.scrollTo({ top: 120, behavior: 'smooth' });
+                }}
+                className="w-full py-2 rounded-lg bg-[#0B4A7D] text-white text-xs font-semibold text-center cursor-pointer"
+              >
+                Inspect District Spatial →
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── LEVEL 5: DPDP PRIVACY-FIRST BENEFICIARY 360° DRAWER ── */}
       <AnimatePresence>
-        {selectedDistrictNgo && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-stretch sm:justify-end">
+        {inspectingBeneficiary && (
+          <div className="fixed inset-0 z-50 flex items-center justify-end">
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setSelectedDistrictNgo(null)}
+              onClick={() => setInspectingBeneficiary(null)}
               className="fixed inset-0 bg-black/40 backdrop-blur-xs"
             />
+
+            {/* Slide-out Drawer */}
             <motion.aside
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ ease: [0.32, 0.72, 0, 1], duration: 0.26 }}
-              className="relative z-10 w-full sm:max-w-[420px] max-h-[88dvh] sm:max-h-full sm:h-full bg-[#FCFBF8] rounded-t-2xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-[#E5DFD3] p-5 sm:p-6 pb-safe overflow-y-auto overscroll-contain space-y-6 shadow-2xl flex flex-col justify-between"
+              transition={{ ease: [0.32, 0.72, 0, 1], duration: 0.24 }}
+              className="relative z-10 w-full sm:max-w-[460px] max-h-[92dvh] sm:max-h-full sm:h-full bg-[#FCFBF8] rounded-t-2xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-[#E5DFD3] p-5 sm:p-6 pb-safe overflow-y-auto overscroll-contain space-y-5 shadow-2xl flex flex-col justify-between"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Mobile Drag Handle */}
+              {/* Drawer Top Handle for Mobile */}
               <div className="sm:hidden w-10 h-1 rounded-full bg-[#D6CFC2] mx-auto mb-1 flex-shrink-0" />
-              <div className="space-y-6">
-            {/* Drawer Header */}
-            <div className="flex items-start justify-between border-b border-[#E5DFD3] pb-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <MapPin size={18} className="text-[#0B4A7D]" />
-                  <h2 className="font-narrative text-xl font-normal text-[#1C1917]">
-                    {selectedDistrictNgo.district} Cluster
-                  </h2>
-                  <span className="text-[10px] font-semibold text-[#8C8479] bg-[#EAE6DD] px-2 py-0.5 rounded">
-                    {selectedDistrictNgo.tier}
+
+              <div className="space-y-5">
+                {/* Drawer Header with DPDP Compliance Badge */}
+                <div className="flex items-start justify-between border-b border-[#E5DFD3] pb-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4A7D]">
+                      <Shield size={14} />
+                      <span>Level 5 Individual Impact 360°</span>
+                    </div>
+                    <h2 className="font-narrative text-lg font-bold text-[#1C1917]">
+                      {inspectingBeneficiary.nameMasked}
+                    </h2>
+                    <p className="text-[11px] text-[#6B655C]">
+                      {inspectingBeneficiary.centreName} · {inspectingBeneficiary.district}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setInspectingBeneficiary(null)}
+                    className="p-1 rounded-lg text-[#8C8479] hover:text-[#1C1917] cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Statutory DPDP Privacy Notice */}
+                <div className="p-3 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] text-[11px] text-[#6B655C] flex items-start gap-2">
+                  <Lock size={14} className="text-[#0B4A7D] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[#1C1917] block">DPDP Act 2023 Compliant Inspection</span>
+                    <p className="text-[10px] text-[#8C8479]">
+                      Section 8(1) Redaction Applied. Aadhaar Virtual ID Tokenized. Electronic consent record logged under ref #{inspectingBeneficiary.auditRecord.consentRef}.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Attendance & Milestone Tracking */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
+                    <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Attendance Record</span>
+                    <span className="text-sm font-bold text-[#2E6B4E] tabular-nums">
+                      {inspectingBeneficiary.attendancePct}%
+                    </span>
+                    <span className="text-[10px] text-[#6B655C] block">GPS Geofenced</span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
+                    <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Monthly Income Lift</span>
+                    <span className="text-sm font-bold text-[#2E6B4E] tabular-nums">
+                      +{inspectingBeneficiary.liftPct}%
+                    </span>
+                    <span className="text-[10px] text-[#6B655C] block">
+                      ₹{inspectingBeneficiary.baselineIncome.toLocaleString('en-IN')} → ₹{inspectingBeneficiary.currentIncome.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ── 3-ROW PERCENTILE BENCHMARK CARD ── */}
+                <div className="p-4 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#E5DFD3] pb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8479]">
+                      Comparative Percentile Performance
+                    </span>
+                    <span className="text-[10px] text-[#0B4A7D] font-semibold">Validated Lift</span>
+                  </div>
+
+                  <div className="space-y-2.5 text-xs">
+                    {/* Row 1: Centre Cohort */}
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-[#6B655C]">Within Centre Cohort ({inspectingBeneficiary.centreName}):</span>
+                        <span className="font-bold text-[#0B4A7D] tabular-nums">
+                          {inspectingBeneficiary.percentiles.withinCentre}th Percentile
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-[#E5DFD3] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#0B4A7D] rounded-full"
+                          style={{ width: `${inspectingBeneficiary.percentiles.withinCentre}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 2: District Peer Cohort */}
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-[#6B655C]">District Peer Cohort ({inspectingBeneficiary.district}):</span>
+                        <span className="font-bold text-[#2E6B4E] tabular-nums">
+                          {inspectingBeneficiary.percentiles.withinDistrict}th Percentile
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-[#E5DFD3] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#2E6B4E] rounded-full"
+                          style={{ width: `${inspectingBeneficiary.percentiles.withinDistrict}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 3: Bajaj Portfolio Cohort */}
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-[#6B655C]">Bajaj CSR Portfolio (42,850 Total):</span>
+                        <span className="font-bold text-[#1C1917] tabular-nums">
+                          {inspectingBeneficiary.percentiles.withinPortfolio}th Percentile
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-[#E5DFD3] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#1C1917] rounded-full"
+                          style={{ width: `${inspectingBeneficiary.percentiles.withinPortfolio}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Milestone Progression Steps */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8479]">
+                    Verified Milestone Checkpoints
                   </span>
+                  <div className="space-y-1.5">
+                    {inspectingBeneficiary.milestones.map((m, i) => (
+                      <div
+                        key={i}
+                        className="p-2.5 rounded-lg bg-[#FCFBF8] border border-[#E5DFD3] text-xs flex items-center justify-between"
+                      >
+                        <span className="text-[#1C1917] flex items-center gap-1.5 font-medium">
+                          <CheckCircle2 size={13} className="text-[#2E6B4E]" />
+                          <span>{m.name}</span>
+                        </span>
+                        {m.date && <span className="text-[10px] text-[#8C8479] tabular-nums">{m.date}</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-xs text-[#6B655C]">
-                  {selectedDistrictNgo.state} · Tender {selectedDistrictNgo.tenderId}
-                </p>
-              </div>
 
-              <button
-                type="button"
-                onClick={() => setSelectedDistrictNgo(null)}
-                className="p-1 rounded-lg text-[#8C8479] hover:text-[#1C1917] cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Assigned Partner Profile Card */}
-            <div className="p-4 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#8C8479]">
-                  Operating Partner
-                </span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                    selectedDistrictNgo.auditStatus === 'flagged'
-                      ? 'bg-[#FCECEB] text-[#B42318]'
-                      : 'bg-[#E8F3EC] text-[#2E6B4E]'
-                  }`}
-                >
-                  {selectedDistrictNgo.auditStatus === 'flagged' ? 'Audit Flagged' : 'KPMG Verified'}
-                </span>
-              </div>
-              <div className="font-semibold text-[#1C1917] text-sm">
-                {selectedDistrictNgo.ngoName}
-              </div>
-              <p className="text-[11px] text-[#6B655C]">
-                {selectedDistrictNgo.program === 'micro-skilling'
-                  ? 'Executing micro-entrepreneurship curriculum, seed inventory support, and UPI onboarding.'
-                  : 'Executing FLN Level 1–3 foundational Hindi & Marathi literacy modules and digital learning tools.'}
-              </p>
-            </div>
-
-            {/* District Baseline Structural Challenge */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C8479]">
-                District Socio-Economic Terrain
-              </h3>
-              <div className="p-3.5 rounded-xl border border-[#E5DFD3] bg-[#FCFBF8] text-xs text-[#6B655C] leading-relaxed">
-                {selectedDistrictNgo.district === 'Pune' && (
-                  <p>
-                    Peri-urban automotive and manufacturing belt. High wage competition creates 6.0% dropout leakage as women transition to formal factory shifts.
-                  </p>
-                )}
-                {selectedDistrictNgo.district === 'Nashik' && (
-                  <p>
-                    Agri-processing hub with seasonal grape harvests. Female learners require evening library shifts to sustain FLN attendance during peak pruning cycles.
-                  </p>
-                )}
-                {selectedDistrictNgo.district === 'Thane' && (
-                  <p className="text-[#B42318]">
-                    High-density urban sprawl in Mumbra & Kalwa. Field audit flagged 142 GPS coordinate anomalies and duplicate phone logs. Tranche release held in escrow.
-                  </p>
-                )}
-                {selectedDistrictNgo.district === 'Jabalpur' && (
-                  <p>
-                    Rural central block with 48% tribal population. Highest baseline distance to schools; mobile FLN centers achieved exceptional 83% Grade-3 fluency.
-                  </p>
-                )}
-                {selectedDistrictNgo.district === 'Chhindwara' && (
-                  <p>
-                    Forest-fringe tribal craft clusters. Low baseline income (₹4,800/mo) transformed by cotton handicraft haats into highest SROI in the portfolio (₹4.18 / ₹1).
-                  </p>
-                )}
-                {selectedDistrictNgo.district === 'Coimbatore' && (
-                  <p>
-                    Power-loom textile corridor. High merchant QR readiness (65% active UPI merchants) and robust SHG micro-credit linkages across Salem & Coimbatore.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* 4-Metric Verified Performance Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
-                <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Women Enrolled</span>
-                <div className="text-base font-semibold text-[#1C1917] tabular-nums mt-0.5">
-                  {selectedDistrictNgo.enrolled.toLocaleString('en-IN')}
+                {/* Audit Integrity Stamp */}
+                <div className="p-3 rounded-xl border border-[#E5DFD3] bg-[#FCFBF8] text-[10px] text-[#8C8479] space-y-1">
+                  <div className="flex items-center justify-between text-[#1C1917] font-semibold">
+                    <span>Audit Sample: {inspectingBeneficiary.auditRecord.auditSampleId}</span>
+                    <span className="text-[#2E6B4E]">Verified</span>
+                  </div>
+                  <div>Auditor: {inspectingBeneficiary.auditRecord.verifiedBy}</div>
+                  <div>Timestamp: {inspectingBeneficiary.auditRecord.verifiedDate}</div>
                 </div>
-                <span className="text-[10px] text-[#2E6B4E]">
-                  {selectedDistrictNgo.retained.toLocaleString('en-IN')} retained
-                </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
-                <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Corpus Deployed</span>
-                <div className="text-base font-semibold text-[#1C1917] tabular-nums mt-0.5">
-                  ₹{(selectedDistrictNgo.grantDisbursed / 10000000).toFixed(2)} Cr
-                </div>
-                <span className="text-[10px] text-[#8C8479]">
-                  of ₹{(selectedDistrictNgo.grantAllocated / 10000000).toFixed(2)} Cr
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
-                <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Verified Gain</span>
-                <div className="text-base font-semibold text-[#2E6B4E] tabular-nums mt-0.5">
-                  {selectedDistrictNgo.program === 'micro-skilling'
-                    ? `+₹${selectedDistrictNgo.extraMonthlyIncome.toLocaleString('en-IN')}`
-                    : `${selectedDistrictNgo.district === 'Jabalpur' ? '83%' : '81%'} FLN 3`}
-                </div>
-                <span className="text-[10px] text-[#6B655C]">
-                  {selectedDistrictNgo.program === 'micro-skilling' ? 'Monthly lift / household' : 'Reading fluency'}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-[#F7F4ED] border border-[#E5DFD3]">
-                <span className="text-[10px] text-[#8C8479] uppercase block font-semibold">Audit Score</span>
-                <div
-                  className={`text-base font-semibold tabular-nums mt-0.5 ${
-                    selectedDistrictNgo.auditIntegrityScore >= 90 ? 'text-[#2E6B4E]' : 'text-[#B42318]'
-                  }`}
-                >
-                  {selectedDistrictNgo.auditIntegrityScore}/100
-                </div>
-                <span className="text-[10px] text-[#8C8479]">
-                  {selectedDistrictNgo.auditFlags.gpsGeofencePassPct}% GPS pass
-                </span>
-              </div>
-            </div>
-
-              </div>
-
-              {/* Working Action Buttons with Emil/Jakub Tactile Feedback */}
-              <div className="pt-4 border-t border-[#E5DFD3] space-y-2">
-                {selectedDistrictNgo.auditStatus === 'flagged' ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDistrictNgo(null);
-                      onNavigate?.('operations');
-                    }}
-                    className="w-full py-2.5 rounded-xl bg-[#B42318] text-white text-xs font-semibold hover:bg-[#991B1B] transition-transform duration-100 active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#B42318]/25"
-                  >
-                    <Warning size={14} />
-                    <span>Review Audit Hold &amp; Case Docket →</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDistrictNgo(null);
-                      onNavigate?.('ngo');
-                    }}
-                    className="w-full py-2.5 rounded-xl bg-[#0B4A7D] text-white text-xs font-semibold hover:bg-[#083A63] transition-transform duration-100 active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0B4A7D]/25"
-                  >
-                    <span>Compare in NGO Partners →</span>
-                  </button>
-                )}
-
+              {/* Close Button */}
+              <div className="pt-3 border-t border-[#E5DFD3]">
                 <button
                   type="button"
-                  onClick={() => setSelectedDistrictNgo(null)}
-                  className="w-full py-2 rounded-xl border border-[#E5DFD3] text-[#6B655C] hover:text-[#1C1917] text-xs font-medium transition-colors cursor-pointer"
+                  onClick={() => setInspectingBeneficiary(null)}
+                  className="w-full py-2.5 rounded-xl bg-[#0B4A7D] text-white text-xs font-semibold hover:bg-[#083A63] transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
                 >
-                  Close Drawer
+                  Close Beneficiary 360°
                 </button>
               </div>
             </motion.aside>

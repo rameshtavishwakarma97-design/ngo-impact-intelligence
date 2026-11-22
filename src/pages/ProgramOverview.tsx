@@ -48,7 +48,7 @@ interface ActiveProgramRecord {
 const fmtNum = (n: number) => n.toLocaleString('en-IN');
 
 export const ProgramOverview: React.FC<ProgramOverviewProps> = ({ onNavigate }) => {
-  const { portfolio, microSkilling, literacy, decisions, approveTranche, holdTranche, fieldErpPulse } = useImpactStore();
+  const { portfolio, microSkilling, literacy, decisions, approveTranche, holdTranche, fieldErpPulse, stateRollups } = useImpactStore();
 
   // ─── Live Dynamic State (Interactive Decisions & Actions) ───
   const [activeTab, setActiveTab] = useState<'capital' | 'women' | 'sync'>('capital');
@@ -817,68 +817,32 @@ export const ProgramOverview: React.FC<ProgramOverviewProps> = ({ onNavigate }) 
 
           {/* Clean Open Divider Layout (Zero Nested Box Cards) */}
           <div className="divide-y divide-[#E5DFD3] pt-1">
-            {/* Maharashtra */}
-            <div className="py-3 first:pt-1 space-y-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <div>
-                  <span className="font-semibold text-sm text-[#1C1917]">Maharashtra</span>
-                  <span className="text-[#8C8479] ml-2 text-[11px]">Pratham, Magic Bus, Room to Read</span>
+            {stateRollups.map((s, idx) => (
+              <div
+                key={s.state}
+                className={`py-3 ${idx === 0 ? 'first:pt-1' : ''} ${idx === stateRollups.length - 1 ? 'last:pb-1' : ''} space-y-1.5`}
+              >
+                <div className="flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-semibold text-sm text-[#1C1917]">{s.state}</span>
+                    <span className="text-[#8C8479] ml-2 text-[11px] truncate max-w-[200px] inline-block align-bottom">
+                      {s.ngos.join(', ')}
+                    </span>
+                  </div>
+                  <div className="tabular-nums">
+                    <span className="font-semibold text-[#1C1917]">{s.women.toLocaleString('en-IN')} women</span>
+                    <span className="ml-2 font-semibold text-[#2E6B4E]">{s.liftDescription}</span>
+                  </div>
                 </div>
-                <div className="tabular-nums">
-                  <span className="font-semibold text-[#1C1917]">20,750 women</span>
-                  <span className="ml-2 font-semibold text-[#2E6B4E]">+28% lift</span>
+                <div className="h-1.5 w-full bg-[#E5DFD3] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#0B4A7D] rounded-full" style={{ width: `${s.pct}%` }} />
                 </div>
-              </div>
-              <div className="h-1.5 w-full bg-[#E5DFD3] rounded-full overflow-hidden">
-                <div className="h-full bg-[#0B4A7D] rounded-full" style={{ width: '48.4%' }} />
-              </div>
-              <div className="flex justify-between text-[10px] text-[#8C8479]">
-                <span>Pune, Thane, Nashik industrial belts</span>
-                <span>48.4% portfolio share</span>
-              </div>
-            </div>
-
-            {/* Madhya Pradesh */}
-            <div className="py-3 space-y-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <div>
-                  <span className="font-semibold text-sm text-[#1C1917]">Madhya Pradesh</span>
-                  <span className="text-[#8C8479] ml-2 text-[11px]">Goonj, Educate Girls</span>
-                </div>
-                <div className="tabular-nums">
-                  <span className="font-semibold text-[#1C1917]">12,000 women</span>
-                  <span className="ml-2 font-semibold text-[#2E6B4E]">+22% lift</span>
+                <div className="flex justify-between text-[10px] text-[#8C8479]">
+                  <span>{s.regionalSubtext}</span>
+                  <span>{s.pct}% portfolio share</span>
                 </div>
               </div>
-              <div className="h-1.5 w-full bg-[#E5DFD3] rounded-full overflow-hidden">
-                <div className="h-full bg-[#0B4A7D] rounded-full" style={{ width: '28.0%' }} />
-              </div>
-              <div className="flex justify-between text-[10px] text-[#8C8479]">
-                <span>Chhindwara, Jabalpur rural tribal blocks</span>
-                <span>28.0% portfolio share</span>
-              </div>
-            </div>
-
-            {/* Tamil Nadu */}
-            <div className="py-3 last:pb-1 space-y-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <div>
-                  <span className="font-semibold text-sm text-[#1C1917]">Tamil Nadu</span>
-                  <span className="text-[#8C8479] ml-2 text-[11px]">Smile Foundation</span>
-                </div>
-                <div className="tabular-nums">
-                  <span className="font-semibold text-[#1C1917]">10,100 women</span>
-                  <span className="ml-2 font-semibold text-[#2E6B4E]">+24% lift</span>
-                </div>
-              </div>
-              <div className="h-1.5 w-full bg-[#E5DFD3] rounded-full overflow-hidden">
-                <div className="h-full bg-[#0B4A7D] rounded-full" style={{ width: '23.6%' }} />
-              </div>
-              <div className="flex justify-between text-[10px] text-[#8C8479]">
-                <span>Chennai peri-urban coastal blocks</span>
-                <span>23.6% portfolio share</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
