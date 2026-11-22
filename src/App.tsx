@@ -698,7 +698,7 @@ function App() {
           <SonnerToast toasts={toasts} onDismiss={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
           {/* Page Content Body */}
-          <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-8 py-6 flex-1">
+          <main className={activePillar === 'geographies' && activeId === 'geographic' && perspective === 'funder' ? 'w-full flex-1 p-0 overflow-y-auto lg:overflow-hidden relative' : 'max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-8 py-6 flex-1'}>
             {/* ── PERSISTENT PROGRAMME CONTEXT BAR ACROSS ALL 4 OUTCOME TABS ── */}
             {activePillar === 'programmes' && perspective === 'funder' && (
               <ProgrammesContextBar

@@ -30,12 +30,16 @@ import {
 
 export type MapDisplayLayer = 'outcomes' | 'cost_efficiency' | 'service_gaps';
 
-interface SpatialMapProps {
+export interface SpatialMapProps {
   selectedDistrictId: string | null;
   selectedState: string | null;
   selectedNgoId: string | null;
   selectedCentre?: OperationalCentre | null;
   activeLayer: MapDisplayLayer;
+  is3D?: boolean;
+  isInspectorCollapsed?: boolean;
+  onToggle3D?: () => void;
+  showInternalControls?: boolean;
   onSelectDistrict: (districtId: string | null) => void;
   onSelectState: (state: string | null) => void;
   onSelectNgo: (ngoId: string | null) => void;
@@ -46,14 +50,14 @@ interface SpatialMapProps {
 
 // Helper: Get NGO Theme Color
 function getNgoColor(ngoId: string, status?: string): string {
-  if (status === 'flagged') return '#B42318'; // Brick Crimson (Audit Hold)
+  if (status === 'flagged') return '#B42318'; // Brick Crimson (Audit Hold strictly)
   switch (ngoId) {
     case 'pratham':
       return '#0B4A7D'; // Bajaj Heritage Blue
     case 'smile':
       return '#B5532A'; // Mineral Terracotta
     case 'magic-bus':
-      return '#B42318'; // Flagged Kalwa Crimson / Blue
+      return '#A86414'; // Raw Ochre for clean Pune Industrial
     case 'goonj':
     case 'educate-girls':
     case 'room-to-read':
@@ -68,6 +72,10 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
   selectedNgoId,
   selectedCentre,
   activeLayer,
+  is3D: externalIs3D,
+  isInspectorCollapsed = false,
+  onToggle3D,
+  showInternalControls = false,
   onSelectDistrict,
   onSelectState,
   onSelectNgo,
@@ -78,7 +86,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
-  const auditPopupRef = useRef<Popup | null>(null);
+  const hoverPopupRef = useRef<Popup | null>(null);
 
   const onSelectDistrictRef = useRef(onSelectDistrict);
   onSelectDistrictRef.current = onSelectDistrict;
@@ -86,13 +94,29 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
   const onSelectStateRef = useRef(onSelectState);
   onSelectStateRef.current = onSelectState;
 
+  const onSelectCentreRef = useRef(onSelectCentre);
+  onSelectCentreRef.current = onSelectCentre;
+
   const { operationalCentres, serviceGapBlocks } = useImpactStore();
 
-  const [is3D, setIs3D] = useState<boolean>(false);
+  const [internalIs3D, setInternalIs3D] = useState<boolean>(false);
+  const is3D = externalIs3D !== undefined ? externalIs3D : internalIs3D;
+
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   const [isZoomedIn, setIsZoomedIn] = useState<boolean>(false);
   const [useSvgFallback, setUseSvgFallback] = useState<boolean>(false);
   const [hoveredDistrict, setHoveredDistrict] = useState<DistrictGeoFeature['properties'] | null>(null);
+
+  // Sync camera tilt with 3D mode
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    map.easeTo({
+      pitch: is3D ? 55 : 0,
+      bearing: is3D ? -20 : 0,
+      duration: 600,
+    });
+  }, [is3D, mapLoaded]);
 
   // Initialize MapLibre with OpenFreeMap Positron Vector Basemap + 3D Architectural Buildings
   useEffect(() => {
@@ -122,15 +146,19 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         style: 'https://tiles.openfreemap.org/styles/positron',
         center: [77.5, 18.5],
         zoom: 5.1,
-        pitch: 0,
-        bearing: 0,
+        pitch: is3D ? 55 : 0,
+        bearing: is3D ? -20 : 0,
         cooperativeGestures: true,
         canvasContextAttributes: { antialias: true },
         attributionControl: false,
       });
 
-      // Bottom-right navigation controls (+ / -)
-      map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
+      // Relocate zoom controls: 'bottom-left' on desktop (never buried behind floating inspector), 'top-right' on mobile
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+      map.addControl(
+        new NavigationControl({ showCompass: false }),
+        isMobile ? 'top-right' : 'bottom-left'
+      );
 
       // ResizeObserver to ensure container non-zero geometry & instant responsiveness
       const ro = new ResizeObserver(() => {
@@ -267,7 +295,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
             );
           }
 
-          // 5. Zoom-Adaptive District Choropleth Fill (Smoothly Fades so streets/buildings remain visible)
+          // 5. Zoom-Adaptive District Choropleth Fill
           if (!map.getLayer('districts-fill')) {
             map.addLayer(
               {
@@ -513,7 +541,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
     }
   }, [selectedDistrictId, mapLoaded]);
 
-  // Auto-Framing & Bounding-Box Camera Flight (Desktop Right Column & Mobile Offset Aware)
+  // Auto-Framing & Bounding-Box Camera Flight (Dynamic fitBounds Padding)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -521,18 +549,54 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
     try {
       const isMobile = window.innerWidth < 1024;
 
+      // 1. Operational Centre Selection: Auto-pitch into 3D Buildings
+      if (selectedCentre) {
+        map.flyTo({
+          center: [selectedCentre.lng, selectedCentre.lat],
+          zoom: isMobile ? 14.0 : 15.2,
+          pitch: 55,
+          bearing: -20,
+          essential: true,
+          duration: 900,
+        });
+        return;
+      }
+
+      // Dynamic Asymmetric Padding: 416px right margin when desktop inspector is open, 48px when collapsed
+      const desktopPadding = isInspectorCollapsed
+        ? { top: 76, left: 48, right: 48, bottom: 92 }
+        : { top: 76, left: 48, right: 416, bottom: 92 };
+
       if (selectedDistrictId) {
-        if (selectedCentre) return;
         const target = SPATIAL_CAMERA_PRESETS[selectedDistrictId];
         if (target) {
-          map.flyTo({
-            center: target.center,
-            zoom: isMobile ? Math.max(8.6, target.zoom - 0.6) : target.zoom,
-            pitch: is3D ? 55 : 0,
-            bearing: is3D ? -20 : 0,
-            essential: true,
-            duration: 900,
-          });
+          if (target.bbox) {
+            map.fitBounds(
+              [
+                [target.bbox[0], target.bbox[1]],
+                [target.bbox[2], target.bbox[3]],
+              ],
+              {
+                padding: isMobile
+                  ? { top: 24, bottom: 24, left: 16, right: 16 }
+                  : desktopPadding,
+                maxZoom: target.zoom || 9.8,
+                pitch: is3D ? 55 : 0,
+                bearing: is3D ? -20 : 0,
+                essential: true,
+                duration: 900,
+              }
+            );
+          } else {
+            map.flyTo({
+              center: target.center,
+              zoom: isMobile ? Math.max(8.6, target.zoom - 0.6) : target.zoom,
+              pitch: is3D ? 55 : 0,
+              bearing: is3D ? -20 : 0,
+              essential: true,
+              duration: 900,
+            });
+          }
         }
       } else if (selectedState) {
         const stateKey = selectedState.toLowerCase().replace(/\s+/g, '_');
@@ -545,8 +609,8 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
             ],
             {
               padding: isMobile
-                ? { top: 24, bottom: 160, left: 16, right: 16 }
-                : { top: 36, bottom: 36, left: 36, right: 36 },
+                ? { top: 24, bottom: 24, left: 16, right: 16 }
+                : desktopPadding,
               maxZoom: target.zoom || 7.6,
               pitch: 0,
               bearing: 0,
@@ -565,22 +629,42 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
           });
         }
       } else {
+        // Chapter 1: All India Overview (Guarantees Coimbatore and all 6 districts fit 100% inside open canvas)
         const target = SPATIAL_CAMERA_PRESETS.all_india;
-        map.flyTo({
-          center: target.center,
-          zoom: isMobile ? 4.3 : 5.1,
-          pitch: 0,
-          bearing: 0,
-          essential: true,
-          duration: 850,
-        });
+        if (target && target.bbox) {
+          map.fitBounds(
+            [
+              [target.bbox[0], target.bbox[1]],
+              [target.bbox[2], target.bbox[3]],
+            ],
+            {
+              padding: isMobile
+                ? { top: 20, bottom: 20, left: 16, right: 16 }
+                : desktopPadding,
+              maxZoom: 5.8,
+              pitch: 0,
+              bearing: 0,
+              essential: true,
+              duration: 850,
+            }
+          );
+        } else {
+          map.flyTo({
+            center: target.center,
+            zoom: isMobile ? 4.3 : 5.1,
+            pitch: 0,
+            bearing: 0,
+            essential: true,
+            duration: 850,
+          });
+        }
       }
     } catch (err) {
       console.error('Camera flight error:', err);
     }
-  }, [selectedDistrictId, selectedState, selectedCentre, is3D, mapLoaded]);
+  }, [selectedDistrictId, selectedState, selectedCentre, is3D, isInspectorCollapsed, mapLoaded]);
 
-  // Pulsing Target Pointers for All 20 Operational Centres + Dynamic Impact Popups
+  // Operational Centres & Targets
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -588,9 +672,9 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
     // Clean up existing markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
-    if (auditPopupRef.current) {
-      auditPopupRef.current.remove();
-      auditPopupRef.current = null;
+    if (hoverPopupRef.current) {
+      hoverPopupRef.current.remove();
+      hoverPopupRef.current = null;
     }
 
     const shouldShowCentres = !!selectedDistrictId || !!selectedNgoId || isZoomedIn;
@@ -646,6 +730,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
       centresToRender.forEach((centre) => {
         const ngoColor = getNgoColor(centre.ngoId, centre.status);
         const isFlagged = centre.status === 'flagged';
+        const isSelected = selectedCentre?.id === centre.id;
 
         const el = document.createElement('div');
         el.className = 'group relative cursor-pointer flex flex-col items-center';
@@ -654,123 +739,66 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         el.innerHTML = `
           <div class="relative flex items-center justify-center">
             <!-- Pulsing Concentric Outer Ring -->
-            <span class="absolute w-8 h-8 rounded-full ${isFlagged ? 'bg-[#B42318]/30 animate-ping' : 'bg-[#0B4A7D]/20 animate-pulse'}"></span>
+            <span class="absolute w-8 h-8 rounded-full ${isFlagged ? 'bg-[#B42318]/30 animate-ping' : isSelected ? 'bg-[#0B4A7D]/40 ring-2 ring-[#0B4A7D]' : 'bg-[#0B4A7D]/20 animate-pulse'}"></span>
             
             <!-- Crisp Concentric Target Crosshair -->
-            <div class="relative w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-transform duration-150 group-hover:scale-125" style="background-color: ${ngoColor}">
+            <div class="relative w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-transform duration-150 group-hover:scale-125 ${isSelected ? 'scale-125 ring-2 ring-[#0B4A7D]' : ''}" style="background-color: ${ngoColor}">
               <div class="w-2 h-2 rounded-full bg-white"></div>
             </div>
           </div>
           
-          <!-- Compact Centered Target Name Pill (Clicks Pass-Through) -->
-          <div class="pointer-events-none mt-1 px-1.5 py-0.2 rounded-md bg-[#FCFBF8]/95 backdrop-blur-md border border-[#E5DFD3] text-[9px] font-semibold text-[#1C1917] shadow-2xs whitespace-nowrap opacity-90 group-hover:opacity-100 transition-opacity">
+          <!-- Compact Centered Target Name Pill -->
+          <div class="pointer-events-none mt-1 px-1.5 py-0.2 rounded-md bg-[#FCFBF8]/95 backdrop-blur-md border ${isSelected ? 'border-[#0B4A7D] text-[#0B4A7D] font-bold' : 'border-[#E5DFD3] text-[#1C1917]'} text-[9px] font-semibold shadow-2xs whitespace-nowrap opacity-90 group-hover:opacity-100 transition-opacity">
             ${centre.name.replace(/ Centre| Hub| Belt/g, '')}
           </div>
         `;
 
-        // Dynamic Interactive Impact Popup
-        const popup = new Popup({
-          offset: 16,
-          closeButton: true,
+        // Lightweight Hover Popup (Non-blocking preview)
+        const hoverPopup = new Popup({
+          offset: 14,
+          closeButton: false,
           closeOnClick: false,
-          className: 'spatial-target-popup',
+          className: 'spatial-target-hover-popup',
         }).setHTML(`
-          <div class="p-3 text-xs font-sans space-y-2 bg-[#FCFBF8] rounded-xl max-w-[240px]">
-            <div class="flex items-start justify-between gap-2 border-b border-[#E5DFD3] pb-1.5">
-              <div>
-                <span class="font-bold text-xs text-[#1C1917] block leading-snug">${centre.name}</span>
-                <span class="text-[10px] text-[#6B655C] font-medium block">${centre.district} · ${centre.state}</span>
-              </div>
-              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${
+          <div class="p-2 text-xs font-sans space-y-1 bg-[#FCFBF8] rounded-xl shadow-lg border border-[#E3DDD0] max-w-[200px]">
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="font-bold text-xs text-[#1C1917] truncate">${centre.name}</span>
+              <span class="px-1 py-0.2 rounded text-[8px] font-bold ${
                 isFlagged ? 'bg-[#FCECEB] text-[#B42318]' : 'bg-[#E8F3EC] text-[#2E6B4E]'
               }">
                 ${isFlagged ? 'Audit Hold' : 'Verified'}
               </span>
             </div>
-
-            <div class="grid grid-cols-2 gap-2 text-[10px]">
-              <div class="p-1.5 rounded-lg bg-[#F7F4ED] border border-[#E5DFD3]">
-                <span class="text-[#8C8479] block text-[9px]">WOMEN</span>
-                <span class="font-bold text-[#1C1917]">${centre.beneficiaries.toLocaleString('en-IN')}</span>
-              </div>
-              <div class="p-1.5 rounded-lg bg-[#F7F4ED] border border-[#E5DFD3]">
-                <span class="text-[#8C8479] block text-[9px]">COMPLETION</span>
-                <span class="font-bold text-[#0B4A7D]">${centre.completionPct}%</span>
-              </div>
+            <div class="text-[10px] text-[#6B655C]">
+              ${centre.beneficiaries.toLocaleString('en-IN')} women · ${centre.completionPct}% completion
             </div>
-
-            <div class="text-[11px] text-[#2E6B4E] font-semibold flex items-center justify-between pt-0.5">
-              <span>Verified Lift</span>
-              <span>${centre.outcomeLift}</span>
+            <div class="text-[10px] text-[#2E6B4E] font-semibold">
+              Lift: ${centre.outcomeLift}
             </div>
-
-            ${
-              isFlagged
-                ? `<div class="p-1.5 rounded bg-[#FCECEB] border border-[#B42318]/20 text-[9px] text-[#B42318] font-medium flex items-center gap-1">
-                    <span>⚠️ 142 GPS Cluster Flags</span>
-                   </div>`
-                : ''
-            }
-
-            <button
-              type="button"
-              id="btn-inspect-${centre.id}"
-              class="w-full mt-1 px-2.5 py-1.5 rounded-lg bg-[#0B4A7D] text-white text-[10px] font-semibold hover:bg-[#083A63] transition-colors cursor-pointer flex items-center justify-center gap-1"
-            >
-              <span>Inspect Centre 3D Details</span>
-              <span>→</span>
-            </button>
           </div>
         `);
 
-        popup.on('open', () => {
-          setTimeout(() => {
-            const btn = document.getElementById(`btn-inspect-${centre.id}`);
-            if (btn) {
-              btn.onclick = () => {
-                onSelectCentre?.(centre);
-                setIs3D(true);
-                map.flyTo({
-                  center: [centre.lng, centre.lat],
-                  zoom: 14.2,
-                  pitch: 55,
-                  bearing: -20,
-                  essential: true,
-                  duration: 900,
-                });
-              };
-            }
-          }, 50);
+        el.addEventListener('mouseenter', () => {
+          hoverPopup.setLngLat([centre.lng, centre.lat]).addTo(map);
+          hoverPopupRef.current = hoverPopup;
         });
 
-        const isSelected = selectedCentre?.id === centre.id;
-        const marker = new Marker({ element: el })
-          .setLngLat([centre.lng, centre.lat])
-          .setPopup(popup)
-          .addTo(map);
+        el.addEventListener('mouseleave', () => {
+          hoverPopup.remove();
+          hoverPopupRef.current = null;
+        });
 
-        if (isSelected) {
-          popup.setLngLat([centre.lng, centre.lat]).addTo(map);
-          auditPopupRef.current = popup;
-        }
-
+        // Click selects centre & synchronizes inspector to Chapter 3
         el.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (!popup.isOpen()) {
-            marker.togglePopup();
-            auditPopupRef.current = popup;
-          }
-          onSelectCentre?.(centre);
-          setIs3D(true);
-          map.flyTo({
-            center: [centre.lng, centre.lat],
-            zoom: 13.8,
-            pitch: 55,
-            bearing: -20,
-            essential: true,
-            duration: 850,
-          });
+          hoverPopup.remove();
+          hoverPopupRef.current = null;
+          onSelectCentreRef.current?.(centre);
         });
+
+        const marker = new Marker({ element: el })
+          .setLngLat([centre.lng, centre.lat])
+          .addTo(map);
 
         markersRef.current.push(marker);
       });
@@ -802,7 +830,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
       markersRef.current.push(anomalyMarker);
     }
 
-    // ── 3. SERVICE GAP PULSING RINGS (When activeLayer === 'service_gaps') ──
+    // ── 3. SERVICE GAP PULSING RINGS ──
     if (activeLayer === 'service_gaps') {
       serviceGapBlocks.forEach((gap) => {
         const gapEl = document.createElement('div');
@@ -838,28 +866,28 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
     activeLayer,
     operationalCentres,
     serviceGapBlocks,
-    onSelectCentre,
-    onSelectNgo,
     onSelectDistrict,
     onSelectState,
     onNavigateToAudit,
     mapLoaded,
   ]);
 
-  // Toggle 2D vs 3D Architectural Mode
+  // Internal Toggle 2D vs 3D
   const toggle3D = useCallback(() => {
+    if (onToggle3D) {
+      onToggle3D();
+      return;
+    }
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-
-    const nextState = !is3D;
-    setIs3D(nextState);
-
+    const nextState = !internalIs3D;
+    setInternalIs3D(nextState);
     map.easeTo({
       pitch: nextState ? 55 : 0,
       bearing: nextState ? -20 : 0,
       duration: 600,
     });
-  }, [is3D, mapLoaded]);
+  }, [internalIs3D, onToggle3D, mapLoaded]);
 
   // True WebGL Fallback SVG Map
   if (useSvgFallback) {
@@ -872,7 +900,6 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
 
         <div className="relative flex-1 flex items-center justify-center p-2">
           <svg viewBox="0 0 460 360" className="w-full h-full max-h-[460px]">
-            {/* Maharashtra State Polygon */}
             <path
               d="M 60,110 L 120,105 L 180,115 L 210,140 L 190,190 L 130,200 L 70,170 Z"
               fill="#EFECE4"
@@ -880,7 +907,6 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
               strokeWidth="1.5"
               strokeDasharray="4,3"
             />
-            {/* Madhya Pradesh State Polygon */}
             <path
               d="M 120,30 L 220,20 L 290,50 L 310,100 L 250,115 L 140,95 Z"
               fill="#EFECE4"
@@ -888,7 +914,6 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
               strokeWidth="1.5"
               strokeDasharray="4,3"
             />
-            {/* Tamil Nadu State Polygon */}
             <path
               d="M 170,240 L 240,245 L 250,320 L 190,340 L 160,290 Z"
               fill="#EFECE4"
@@ -1028,7 +1053,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
   }
 
   return (
-    <div className={`relative w-full h-full min-h-[340px] rounded-2xl border border-[#E5DFD3] overflow-hidden bg-[#F3EFE6] select-none ${className}`}>
+    <div className={`relative w-full h-full min-h-[340px] overflow-hidden bg-[#F3EFE6] select-none ${className}`}>
       {/* ── MAPLIBRE CANVAS CONTAINER ── */}
       <div
         ref={mapContainerRef}
@@ -1036,61 +1061,41 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         aria-label="MapLibre 5-Level Spatial Impact Explorer"
       />
 
-      {/* ── CONTROLS OVERLAY: 2D/3D TILT & RESET CAMERA (TOP-RIGHT) ── */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={toggle3D}
-          className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
-            is3D
-              ? 'bg-[#0B4A7D] text-white border-[#0B4A7D] ring-2 ring-[#0B4A7D]/25'
-              : 'bg-[#FCFBF8] text-[#1C1917] border-[#E5DFD3] hover:border-[#0B4A7D]'
-          }`}
-          title="Toggle 2D Map vs 3D Architectural Buildings"
-        >
-          <Building2 size={13} />
-          <span>{is3D ? '3D Buildings' : '2D Map'}</span>
-        </button>
+      {/* ── OPTIONAL INTERNAL CONTROLS (Only if parent dock does not provide them) ── */}
+      {showInternalControls && (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={toggle3D}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+              is3D
+                ? 'bg-[#0B4A7D] text-white border-[#0B4A7D] ring-2 ring-[#0B4A7D]/25'
+                : 'bg-[#FCFBF8] text-[#1C1917] border-[#E5DFD3] hover:border-[#0B4A7D]'
+            }`}
+            title="Toggle 2D Map vs 3D Architectural Buildings"
+          >
+            <Building2 size={13} />
+            <span>{is3D ? '3D Buildings' : '2D Map'}</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            onSelectDistrict(null);
-            onSelectState(null);
-            onSelectNgo(null);
-          }}
-          className="p-1.5 rounded-xl bg-[#FCFBF8] border border-[#E5DFD3] text-[#6B655C] hover:text-[#1C1917] hover:border-[#0B4A7D] transition-all cursor-pointer shadow-2xs"
-          title="Reset to All India View"
-        >
-          <Compass size={14} />
-        </button>
-      </div>
-
-      {/* ── ACTIVE LAYER BADGE & LEGEND (BOTTOM-LEFT) ── */}
-      <div className="absolute bottom-3 left-3 z-10 hidden sm:flex items-center gap-2 p-2 rounded-xl bg-[#FCFBF8]/95 backdrop-blur-md border border-[#E5DFD3] text-[11px] shadow-xs">
-        <span className="font-semibold text-[#1C1917] flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-[#0B4A7D]"></span>
-          <span>
-            {activeLayer === 'outcomes'
-              ? 'Outcomes (0–100)'
-              : activeLayer === 'cost_efficiency'
-              ? '₹ SROI Efficiency'
-              : 'Service Gaps & Unserved Hubs'}
-          </span>
-        </span>
-        <span className="text-[#8C8479]">·</span>
-        <span className="text-[#6B655C]">6 Districts · 20 Centres</span>
-        {is3D && (
-          <>
-            <span className="text-[#8C8479]">·</span>
-            <span className="text-[#0B4A7D] font-bold">3D Mode Active</span>
-          </>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => {
+              onSelectDistrict(null);
+              onSelectState(null);
+              onSelectNgo(null);
+            }}
+            className="p-1.5 rounded-xl bg-[#FCFBF8] border border-[#E5DFD3] text-[#6B655C] hover:text-[#1C1917] hover:border-[#0B4A7D] transition-all cursor-pointer shadow-2xs"
+            title="Reset to All India View"
+          >
+            <Compass size={14} />
+          </button>
+        </div>
+      )}
 
       {/* ── DESKTOP HOVER TOOLTIP (TOP-LEFT) ── */}
       {hoveredDistrict && (
-        <div className="absolute top-3 left-3 z-20 pointer-events-none hidden sm:block p-3 rounded-xl bg-[#FCFBF8]/95 backdrop-blur-md border border-[#E5DFD3] text-xs shadow-lg max-w-xs space-y-1">
+        <div className="absolute top-16 left-4 z-20 pointer-events-none hidden sm:block p-3 rounded-xl bg-[#FCFBF8]/95 backdrop-blur-md border border-[#E5DFD3] text-xs shadow-lg max-w-xs space-y-1">
           <div className="flex items-center justify-between gap-2 border-b border-[#E5DFD3] pb-1">
             <span className="font-bold text-[#1C1917]">{hoveredDistrict.name} District</span>
             <span className="text-[10px] text-[#8C8479]">{hoveredDistrict.state}</span>

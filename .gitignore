@@ -32,6 +32,7 @@ Thumbs.db
 *.sw?
 
 # Temporary QA Screenshots & Internal AI Delivery Artifacts
+scripts/
 *.png
 !src/**/*.png
 !public/**/*.png
