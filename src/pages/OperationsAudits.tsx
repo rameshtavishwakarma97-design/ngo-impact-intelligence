@@ -239,24 +239,30 @@ export const OperationsAudits: React.FC = () => {
                     const color = getNgoColor(ngo.ngoId, ngo.district);
                     const partnerIssues = ngoIssues.filter((i) => i.ngoId === ngo.ngoId && i.status === 'open');
 
+                    // Dynamically derive health status (resolving an issue flips needs_help to healthy)
+                    let effectiveHealthStatus = ngo.healthStatus;
+                    if (ngo.healthStatus === 'needs_help' && partnerIssues.length === 0) {
+                      effectiveHealthStatus = 'healthy';
+                    }
+
                     let statusBadge = (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F3EC] text-[#2E6B4E] border border-[#2E6B4E]/30 whitespace-nowrap">
                         Healthy ✓
                       </span>
                     );
-                    if (ngo.healthStatus === 'flagged') {
+                    if (effectiveHealthStatus === 'flagged') {
                       statusBadge = (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FCECEB] text-[#B42318] border border-[#B42318]/30 whitespace-nowrap">
                           Flagged · Paused
                         </span>
                       );
-                    } else if (ngo.healthStatus === 'needs_help') {
+                    } else if (effectiveHealthStatus === 'needs_help') {
                       statusBadge = (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FDF4E3] text-[#A86414] border border-[#A86414]/30 whitespace-nowrap">
                           Needs Help
                         </span>
                       );
-                    } else if (ngo.healthStatus === 'slow_spend') {
+                    } else if (effectiveHealthStatus === 'slow_spend') {
                       statusBadge = (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF6EE] text-[#B5532A] border border-[#B5532A]/30 whitespace-nowrap">
                           Slow Spend
@@ -278,9 +284,12 @@ export const OperationsAudits: React.FC = () => {
                     } else if (ngo.ngoId === 'room-to-read') {
                       moneyText = `₹${(ngo.grantDisbursed / 10000000).toFixed(2)} / ₹${(ngo.grantAllocated / 10000000).toFixed(2)} Cr · ₹1.0 Cr Q4 Pending`;
                     } else if (ngo.ngoId === 'pratham') {
-                      moneyText = `₹${(ngo.grantDisbursed / 10000000).toFixed(2)} / ₹${(ngo.grantAllocated / 10000000).toFixed(2)} Cr · Tranche 2 Ready`;
+                      const isFull = (ngo.grantDisbursed >= ngo.grantAllocated) || (ngo.grantDisbursed >= 82000000);
+                      moneyText = isFull
+                        ? `₹${(ngo.grantDisbursed / 10000000).toFixed(2)} / ₹${(ngo.grantAllocated / 10000000).toFixed(2)} Cr · 100% Disbursed`
+                        : `₹${(ngo.grantDisbursed / 10000000).toFixed(2)} / ₹${(ngo.grantAllocated / 10000000).toFixed(2)} Cr · Tranche 2 Ready`;
                     } else if (ngo.ngoId === 'goonj') {
-                      moneyText = `₹${(ngo.grantDisbursed / 10000000).toFixed(2)} / ₹${(ngo.grantAllocated / 10000000).toFixed(2)} Cr · 100% Utilized`;
+                      moneyText = `₹${(ngo.grantDisbursed / 10000000).toFixed(2)} / ₹${(ngo.grantAllocated / 10000000).toFixed(2)} Cr · ₹30 L Reserve Held`;
                     }
 
                     return (
@@ -529,7 +538,7 @@ export const OperationsAudits: React.FC = () => {
                         {/* 2-Step Ethical Friction Checkboxes */}
                         <div className="p-3 rounded-xl bg-[#FEF6EE] border border-[#A86414]/30 space-y-2 text-xs">
                           <span className="text-[10px] uppercase font-bold text-[#A86414] tracking-wider block">
-                            Mandatory Ethical Clearance Friction (2-Step Governance)
+                            2-STEP RELEASE VERIFICATION
                           </span>
                           <label className="flex items-start gap-2 cursor-pointer select-none">
                             <input
@@ -559,7 +568,11 @@ export const OperationsAudits: React.FC = () => {
                           type="button"
                           disabled={!reAuditConfirmed || !overheadPlanConfirmed}
                           onClick={handleClearHoldConfirm}
-                          className="w-full py-2.5 rounded-xl bg-[#0B4A7D] text-white text-xs font-semibold hover:bg-[#083A63] transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          className={`w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                            reAuditConfirmed && overheadPlanConfirmed
+                              ? 'bg-[#0B4A7D] text-white opacity-100 shadow-md hover:bg-[#083A63] cursor-pointer active:scale-[0.99]'
+                              : 'bg-[#0B4A7D]/40 text-white/70 cursor-not-allowed opacity-40'
+                          }`}
                         >
                           <Unlock size={14} />
                           <span>Clear Audit Hold &amp; Unlock ₹35 L Tranche</span>

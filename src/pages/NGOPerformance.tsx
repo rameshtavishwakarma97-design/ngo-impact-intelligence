@@ -650,7 +650,7 @@ export const NGOPerformance: React.FC = () => {
             </div>
 
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 20, right: 20, bottom: 25, left: 44 }}>
+              <ScatterChart margin={{ top: 20, right: 20, bottom: 25, left: 56 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-hairline)" />
                 <XAxis
                   type="number"

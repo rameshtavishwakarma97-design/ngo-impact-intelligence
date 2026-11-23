@@ -151,8 +151,8 @@ export const ProgrammesContextBar: React.FC<ProgrammesContextBarProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Desktop Layout (>= md): Sleek Single-Row */}
-      <div className="hidden md:flex items-center justify-between gap-3 overflow-x-auto flex-nowrap scrollbar-none py-0.5">
+      {/* Desktop Layout (>= md): Sleek Single-Row with Flex-Wrap Safe Spacing */}
+      <div className="hidden md:flex flex-wrap items-center justify-between gap-2.5 py-0.5">
         {/* Left: Programme Selector Dropdown */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="text-[11px] uppercase font-semibold text-[#8C8479] tracking-wider hidden lg:inline">
@@ -180,7 +180,7 @@ export const ProgrammesContextBar: React.FC<ProgrammesContextBarProps> = ({
         </div>
 
         {/* Right: Inline Filter Trio */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           {/* State Filter */}
           <div className="relative">
             <select

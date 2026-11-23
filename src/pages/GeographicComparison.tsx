@@ -583,12 +583,14 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
     setIs3D(false);
   }, []);
 
-  const renderTodayDecisions = () => {
-    const prathamDec = decisions.find(d => d.id === 'dec-pratham');
-    const magicBusDec = decisions.find(d => d.id === 'dec-magic-bus');
-    const prathamApproved = prathamDec?.status === 'approved';
-    const magicBusHeld = magicBusDec?.status === 'held';
+  // Pending CSR Decisions Queue Count
+  const prathamDec = decisions.find(d => d.id === 'dec-pratham');
+  const magicBusDec = decisions.find(d => d.id === 'dec-magic-bus');
+  const prathamApproved = prathamDec?.status === 'approved';
+  const magicBusHeld = magicBusDec?.status === 'held';
+  const pendingDecisionsCount = (prathamApproved ? 0 : 1) + (magicBusHeld ? 0 : 1) + 1;
 
+  const renderTodayDecisions = () => {
     return (
       <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 select-none">
         {/* Section Header */}
@@ -598,7 +600,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
               Executive Queue
             </span>
             <h3 className="font-serif text-sm font-bold text-[#181D24]">
-              Pending CSR Decisions (3)
+              Pending CSR Decisions ({pendingDecisionsCount})
             </h3>
           </div>
           <span className="px-2 py-0.5 rounded-full bg-[#FDF4E3] border border-[#A86414]/30 text-[#A86414] text-[10px] font-bold">
@@ -636,7 +638,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
             <span className="text-[10px] text-[#8C8479]">Milestone M6 Cleared</span>
             {prathamApproved ? (
               <span className="px-2 py-0.5 rounded-lg bg-[#E8F3EC] text-[#2E6B4E] font-bold text-xs flex items-center gap-1">
-                <Check size={13} strokeWidth={2.5} /> Approved ✓
+                <Check size={13} strokeWidth={2.5} /> Approved
               </span>
             ) : (
               <button
@@ -935,11 +937,11 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
             type="button"
             onClick={() => setMobileTab('today')}
             className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${mobileTab === 'today'
-                ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                : 'text-[#646058] hover:text-[#181D24]'
+              ? 'bg-[#0B4A7D] text-white shadow-2xs'
+              : 'text-[#646058] hover:text-[#181D24]'
               }`}
           >
-            Today (3)
+            Today ({pendingDecisionsCount})
           </button>
           <button
             type="button"
@@ -948,8 +950,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
               setInspectorMode('explore');
             }}
             className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${mobileTab === 'map'
-                ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                : 'text-[#646058] hover:text-[#181D24]'
+              ? 'bg-[#0B4A7D] text-white shadow-2xs'
+              : 'text-[#646058] hover:text-[#181D24]'
               }`}
           >
             Spatial Map
@@ -1193,8 +1195,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
         {/* ── LENS DOCK (Stacked Scrollable on Mobile < lg, Floating Center on Desktop lg:) ── */}
         <div
           className={`relative w-full z-20 flex items-center justify-between sm:justify-center gap-1.5 bg-[#FCFBF8] border-y border-[#E3DDD0] px-3 py-1.5 text-xs whitespace-nowrap overflow-x-auto no-scrollbar lg:absolute lg:bottom-4 lg:z-30 lg:w-auto lg:border lg:rounded-2xl lg:shadow-lg lg:p-1.5 lg:bg-[#FCFBF8]/95 lg:backdrop-blur-md lg:transition-[left] lg:duration-300 lg:-translate-x-1/2 ${isInspectorCollapsed
-              ? 'lg:left-1/2'
-              : 'lg:left-[calc((100%-392px)/2)]'
+            ? 'lg:left-1/2'
+            : 'lg:left-[calc((100%-392px)/2)]'
             }`}
         >
           {/* 3 Lens Pills with Glide Indicator */}
@@ -1257,8 +1259,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
               type="button"
               onClick={() => setFormulaOpen(!formulaOpen)}
               className={`p-1.5 rounded-xl border text-xs transition-all cursor-pointer ${formulaOpen
-                  ? 'bg-[#0B4A7D] text-white border-[#0B4A7D]'
-                  : 'bg-[#EFECE4] text-[#646058] border-[#E3DDD0] hover:text-[#181D24]'
+                ? 'bg-[#0B4A7D] text-white border-[#0B4A7D]'
+                : 'bg-[#EFECE4] text-[#646058] border-[#E3DDD0] hover:text-[#181D24]'
                 }`}
               title="Composite Impact Index Formula"
             >
@@ -1297,8 +1299,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
             type="button"
             onClick={() => setIs3D(!is3D)}
             className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1 ${is3D
-                ? 'bg-[#0B4A7D] text-white border-[#0B4A7D] shadow-2xs'
-                : 'bg-[#EFECE4] text-[#181D24] border-[#E3DDD0] hover:border-[#0B4A7D]'
+              ? 'bg-[#0B4A7D] text-white border-[#0B4A7D] shadow-2xs'
+              : 'bg-[#EFECE4] text-[#181D24] border-[#E3DDD0] hover:border-[#0B4A7D]'
               }`}
             title="Toggle 2D Map vs 3D Architectural Buildings"
           >
@@ -1354,18 +1356,18 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                 type="button"
                 onClick={() => setInspectorMode('today')}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${inspectorMode === 'today'
-                    ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                    : 'text-[#646058] hover:text-[#181D24]'
+                  ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                  : 'text-[#646058] hover:text-[#181D24]'
                   }`}
               >
-                Today (3)
+                Today ({pendingDecisionsCount})
               </button>
               <button
                 type="button"
                 onClick={() => setInspectorMode('explore')}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${inspectorMode === 'explore'
-                    ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                    : 'text-[#646058] hover:text-[#181D24]'
+                  ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                  : 'text-[#646058] hover:text-[#181D24]'
                   }`}
               >
                 Explore Map
@@ -1422,8 +1424,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                           type="button"
                           onClick={() => setSelectedState(selectedState === 'Maharashtra' ? null : 'Maharashtra')}
                           className={`px-2.5 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${selectedState === 'Maharashtra'
-                              ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                              : 'bg-[#EFECE4] text-[#181D24] border border-[#E3DDD0] hover:border-[#0B4A7D]'
+                            ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                            : 'bg-[#EFECE4] text-[#181D24] border border-[#E3DDD0] hover:border-[#0B4A7D]'
                             }`}
                         >
                           Maharashtra · 23.2k
@@ -1433,8 +1435,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                           type="button"
                           onClick={() => setSelectedState(selectedState === 'Madhya Pradesh' ? null : 'Madhya Pradesh')}
                           className={`px-2.5 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${selectedState === 'Madhya Pradesh'
-                              ? 'bg-[#2E6B4E] text-white shadow-2xs'
-                              : 'bg-[#EFECE4] text-[#181D24] border border-[#E3DDD0] hover:border-[#2E6B4E]'
+                            ? 'bg-[#2E6B4E] text-white shadow-2xs'
+                            : 'bg-[#EFECE4] text-[#181D24] border border-[#E3DDD0] hover:border-[#2E6B4E]'
                             }`}
                         >
                           MP · 12.0k
@@ -1444,8 +1446,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                           type="button"
                           onClick={() => setSelectedState(selectedState === 'Tamil Nadu' ? null : 'Tamil Nadu')}
                           className={`px-2.5 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${selectedState === 'Tamil Nadu'
-                              ? 'bg-[#B5532A] text-white shadow-2xs'
-                              : 'bg-[#EFECE4] text-[#181D24] border border-[#E3DDD0] hover:border-[#B5532A]'
+                            ? 'bg-[#B5532A] text-white shadow-2xs'
+                            : 'bg-[#EFECE4] text-[#181D24] border border-[#E3DDD0] hover:border-[#B5532A]'
                             }`}
                         >
                           TN · 7.6k
@@ -1581,8 +1583,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                       type="button"
                       onClick={() => setDistrictSubTab('ngos')}
                       className={`flex-1 py-1 px-2 rounded-lg text-xs font-semibold text-center transition-all cursor-pointer ${districtSubTab === 'ngos'
-                          ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                          : 'text-[#646058] hover:bg-[#EFECE4]'
+                        ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                        : 'text-[#646058] hover:bg-[#EFECE4]'
                         }`}
                     >
                       NGOs ({activeDistrictAllocations.length})
@@ -1592,8 +1594,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                       type="button"
                       onClick={() => setDistrictSubTab('centres')}
                       className={`flex-1 py-1 px-2 rounded-lg text-xs font-semibold text-center transition-all cursor-pointer ${districtSubTab === 'centres'
-                          ? 'bg-[#0B4A7D] text-white shadow-2xs'
-                          : 'text-[#646058] hover:bg-[#EFECE4]'
+                        ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                        : 'text-[#646058] hover:bg-[#EFECE4]'
                         }`}
                     >
                       Centres ({activeCentres.length})
@@ -1603,8 +1605,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                       type="button"
                       onClick={() => setDistrictSubTab('gaps')}
                       className={`flex-1 py-1 px-2 rounded-lg text-xs font-semibold text-center transition-all cursor-pointer ${districtSubTab === 'gaps'
-                          ? 'bg-[#B5532A] text-white shadow-2xs'
-                          : 'text-[#646058] hover:bg-[#EFECE4]'
+                        ? 'bg-[#B5532A] text-white shadow-2xs'
+                        : 'text-[#646058] hover:bg-[#EFECE4]'
                         }`}
                     >
                       Gaps ({districtServiceGaps.length})
@@ -1634,8 +1636,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                                   setSelectedNgoId(isSpotlighted ? null : alloc.ngoId);
                                 }}
                                 className={`p-2.5 rounded-xl transition-all cursor-pointer space-y-1.5 ${isSpotlighted
-                                    ? 'bg-[#FCFBF8] border-2 shadow-sm'
-                                    : 'bg-[#EFECE4]/50 border border-[#E3DDD0] hover:border-[#0B4A7D] hover:bg-[#FCFBF8]'
+                                  ? 'bg-[#FCFBF8] border-2 shadow-sm'
+                                  : 'bg-[#EFECE4]/50 border border-[#E3DDD0] hover:border-[#0B4A7D] hover:bg-[#FCFBF8]'
                                   }`}
                                 style={{
                                   borderColor: isSpotlighted ? ngoColor : undefined,
