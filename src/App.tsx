@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   FolderKanban,
   Building2,
-  MapPin,
   ShieldCheck,
   Search,
   Moon,
@@ -19,6 +18,7 @@ import {
   Users,
   ClipboardList,
   Smartphone,
+  Plus,
 } from 'lucide-react';
 
 import { ImpactStoreProvider } from './data/impactStore';
@@ -48,7 +48,7 @@ export type ScreenId =
   | 'geographic'
   | 'operations' | 'baseline' | 'training' | 'training-outcome';
 
-export type PillarId = 'overview' | 'programmes' | 'ngo' | 'geographies' | 'operations';
+export type PillarId = 'pulse' | 'programmes' | 'ngo' | 'operations';
 
 interface PillarNav {
   id: PillarId;
@@ -58,10 +58,9 @@ interface PillarNav {
 }
 
 const PILLARS: PillarNav[] = [
-  { id: 'overview',    label: 'Overview',            icon: LayoutDashboard, defaultScreen: 'overview' },
+  { id: 'pulse',       label: 'Pulse',               icon: LayoutDashboard, defaultScreen: 'geographic' },
   { id: 'programmes',  label: 'Programmes',          icon: FolderKanban,    defaultScreen: 'income' },
   { id: 'ngo',         label: 'NGO Partners',        icon: Building2,       defaultScreen: 'ngo' },
-  { id: 'geographies', label: 'Geographies',         icon: MapPin,          defaultScreen: 'geographic' },
   { id: 'operations',  label: 'Operations & Audits', icon: ShieldCheck,     defaultScreen: 'operations' },
 ];
 
@@ -94,16 +93,15 @@ const SEARCHABLE_ITEMS: { id: ScreenId; label: string; pillar: string }[] = [
 ];
 
 function getActivePillar(screenId: ScreenId): PillarId {
-  if (screenId === 'overview') return 'overview';
+  if (screenId === 'geographic' || screenId === 'overview') return 'pulse';
   if (['income', 'entrepreneurship', 'sustainability', 'digital', 'financial', 'prepost'].includes(screenId)) {
     return 'programmes';
   }
   if (screenId === 'ngo') return 'ngo';
-  if (screenId === 'geographic') return 'geographies';
   if (['operations', 'baseline', 'training', 'training-outcome'].includes(screenId)) {
     return 'operations';
   }
-  return 'overview';
+  return 'pulse';
 }
 
 function useIsMobile(breakpoint = 1024) {
@@ -134,7 +132,7 @@ function App() {
       const hash = window.location.hash.replace('#', '') as ScreenId;
       if (hash) return hash;
     }
-    return 'overview';
+    return 'geographic';
   });
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
@@ -659,16 +657,23 @@ function App() {
                     <kbd className="text-[10px] font-sans px-1 py-0.2 rounded border border-[#E5DFD3] bg-[#F7F4ED] text-[#8C8479] hidden sm:inline">⌘K</kbd>
                   </button>
 
-                  {/* Export Brief Button */}
-                  {activePillar !== 'overview' && (
-                    <button
-                      onClick={handleExport}
-                      className="text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-lg border border-[#E5DFD3] bg-[#FCFBF8] text-[#1C1917] hover:border-[#0B4A7D] hover:text-[#0B4A7D] transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                    >
-                      <FileDown size={13} strokeWidth={1.5} className="text-[#B42318]" />
-                      <span className="hidden md:inline">Export Brief</span>
-                    </button>
-                  )}
+                  {/* Board Pack */}
+                  <button
+                    onClick={handleExport}
+                    className="text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-lg border border-[#E5DFD3] bg-[#FCFBF8] text-[#1C1917] hover:border-[#0B4A7D] hover:text-[#0B4A7D] transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <FileDown size={13} strokeWidth={1.5} className="text-[#B42318]" />
+                    <span className="hidden md:inline">Board Pack</span>
+                  </button>
+
+                  {/* + New Programme Button */}
+                  <button
+                    onClick={() => addToast('New Programme RFP', 'Tender creation workflow initiated.')}
+                    className="text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-lg bg-[#0B4A7D] text-white hover:bg-[#083A63] transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                  >
+                    <Plus size={13} strokeWidth={2} />
+                    <span className="hidden md:inline">New Programme</span>
+                  </button>
                 </>
               )}
 
@@ -698,7 +703,7 @@ function App() {
           <SonnerToast toasts={toasts} onDismiss={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
           {/* Page Content Body */}
-          <main className={activePillar === 'geographies' && activeId === 'geographic' && perspective === 'funder' ? 'w-full flex-1 p-0 overflow-y-auto lg:overflow-hidden relative' : 'max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-8 py-6 flex-1'}>
+          <main className={activePillar === 'pulse' && perspective === 'funder' ? 'w-full flex-1 p-0 overflow-y-auto lg:overflow-hidden relative' : 'max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-8 py-6 flex-1'}>
             {/* ── PERSISTENT PROGRAMME CONTEXT BAR ACROSS ALL 4 OUTCOME TABS ── */}
             {activePillar === 'programmes' && perspective === 'funder' && (
               <ProgrammesContextBar

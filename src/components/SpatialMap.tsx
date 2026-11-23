@@ -22,6 +22,7 @@ import {
 import {
   useImpactStore,
   type OperationalCentre,
+  getNgoColor,
 } from '../data/impactStore';
 import {
   Compass,
@@ -46,24 +47,6 @@ export interface SpatialMapProps {
   onSelectCentre?: (centre: OperationalCentre) => void;
   onNavigateToAudit?: () => void;
   className?: string;
-}
-
-// Helper: Get NGO Theme Color
-function getNgoColor(ngoId: string, status?: string): string {
-  if (status === 'flagged') return '#B42318'; // Brick Crimson (Audit Hold strictly)
-  switch (ngoId) {
-    case 'pratham':
-      return '#0B4A7D'; // Bajaj Heritage Blue
-    case 'smile':
-      return '#B5532A'; // Mineral Terracotta
-    case 'magic-bus':
-      return '#A86414'; // Raw Ochre for clean Pune Industrial
-    case 'goonj':
-    case 'educate-girls':
-    case 'room-to-read':
-    default:
-      return '#2E6B4E'; // Botanical Moss
-  }
 }
 
 export const SpatialMap: React.FC<SpatialMapProps> = ({
@@ -567,6 +550,45 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         ? { top: 76, left: 48, right: 48, bottom: 92 }
         : { top: 76, left: 48, right: 416, bottom: 92 };
 
+      // 2. 1-Click NGO Spotlight Zoom in Selected District (e.g. Smile frames Baramati + Shirur)
+      if (selectedDistrictId && selectedNgoId) {
+        const ngoCentres = operationalCentres.filter(
+          (c) => c.district.toLowerCase() === selectedDistrictId.toLowerCase() && c.ngoId === selectedNgoId
+        );
+        if (ngoCentres.length > 0) {
+          let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+          ngoCentres.forEach((c) => {
+            minLng = Math.min(minLng, c.lng);
+            minLat = Math.min(minLat, c.lat);
+            maxLng = Math.max(maxLng, c.lng);
+            maxLat = Math.max(maxLat, c.lat);
+          });
+          if (minLng === maxLng && minLat === maxLat) {
+            minLng -= 0.04;
+            maxLng += 0.04;
+            minLat -= 0.04;
+            maxLat += 0.04;
+          }
+          map.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ],
+            {
+              padding: isMobile
+                ? { top: 32, bottom: 32, left: 24, right: 24 }
+                : desktopPadding,
+              maxZoom: 12.8,
+              pitch: is3D ? 55 : 0,
+              bearing: is3D ? -20 : 0,
+              essential: true,
+              duration: 900,
+            }
+          );
+          return;
+        }
+      }
+
       if (selectedDistrictId) {
         const target = SPATIAL_CAMERA_PRESETS[selectedDistrictId];
         if (target) {
@@ -662,7 +684,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
     } catch (err) {
       console.error('Camera flight error:', err);
     }
-  }, [selectedDistrictId, selectedState, selectedCentre, is3D, isInspectorCollapsed, mapLoaded]);
+  }, [selectedDistrictId, selectedState, selectedNgoId, selectedCentre, is3D, isInspectorCollapsed, mapLoaded]);
 
   // Operational Centres & Targets
   useEffect(() => {
@@ -717,6 +739,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
 
     // ── 1. OPERATIONAL CENTRE TARGET PIN POINTERS ──
     if (shouldShowCentres) {
+      const isSpotlight = Boolean(selectedNgoId);
       const centresToRender = operationalCentres.filter((c) => {
         if (selectedDistrictId && c.district.toLowerCase() !== selectedDistrictId.toLowerCase()) {
           return false;
@@ -728,9 +751,12 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
       });
 
       centresToRender.forEach((centre) => {
-        const ngoColor = getNgoColor(centre.ngoId, centre.status);
+        const ngoColor = getNgoColor(centre.ngoId, centre.district);
         const isFlagged = centre.status === 'flagged';
         const isSelected = selectedCentre?.id === centre.id;
+        const labelVisibility = isSpotlight
+          ? 'opacity-100'
+          : (isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100');
 
         const el = document.createElement('div');
         el.className = 'group relative cursor-pointer flex flex-col items-center';
@@ -739,7 +765,7 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         el.innerHTML = `
           <div class="relative flex items-center justify-center">
             <!-- Pulsing Concentric Outer Ring -->
-            <span class="absolute w-8 h-8 rounded-full ${isFlagged ? 'bg-[#B42318]/30 animate-ping' : isSelected ? 'bg-[#0B4A7D]/40 ring-2 ring-[#0B4A7D]' : 'bg-[#0B4A7D]/20 animate-pulse'}"></span>
+            <span class="absolute w-8 h-8 rounded-full ${isFlagged ? 'bg-[#B42318]/30 animate-ping' : isSelected ? 'ring-2 ring-[#0B4A7D]' : 'animate-pulse'}" style="background-color: ${ngoColor}26"></span>
             
             <!-- Crisp Concentric Target Crosshair -->
             <div class="relative w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-transform duration-150 group-hover:scale-125 ${isSelected ? 'scale-125 ring-2 ring-[#0B4A7D]' : ''}" style="background-color: ${ngoColor}">
@@ -748,8 +774,8 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
           </div>
           
           <!-- Compact Centered Target Name Pill -->
-          <div class="pointer-events-none mt-1 px-1.5 py-0.2 rounded-md bg-[#FCFBF8]/95 backdrop-blur-md border ${isSelected ? 'border-[#0B4A7D] text-[#0B4A7D] font-bold' : 'border-[#E5DFD3] text-[#1C1917]'} text-[9px] font-semibold shadow-2xs whitespace-nowrap opacity-90 group-hover:opacity-100 transition-opacity">
-            ${centre.name.replace(/ Centre| Hub| Belt/g, '')}
+          <div class="pointer-events-none mt-1 px-1.5 py-0.2 rounded-md bg-[#FCFBF8]/95 backdrop-blur-md border ${isSelected ? 'border-[#0B4A7D] text-[#0B4A7D] font-bold' : 'border-[#E5DFD3] text-[#1C1917]'} text-[9px] font-semibold shadow-2xs whitespace-nowrap transition-opacity duration-150 ${labelVisibility}">
+            ${centre.name.replace(/ Centre| Hub| Belt/g, '')} ${isSpotlight ? `· ${centre.outcomeLift}` : ''}
           </div>
         `;
 

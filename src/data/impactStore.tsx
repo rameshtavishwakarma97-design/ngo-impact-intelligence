@@ -212,6 +212,25 @@ export interface StateRollup {
   regionalSubtext: string;
 }
 
+// ─── CANONICAL 1-TO-1 NGO COLOR PALETTE ───────────────────────────────────────
+export function getNgoColor(ngoId: string, districtId?: string): string {
+  if (ngoId === 'magic-bus') {
+    if (districtId?.toLowerCase() === 'thane') return '#B42318'; // Brick Crimson (Audit Hold strictly)
+    return '#A86414'; // Raw Ochre in Pune
+  }
+  switch (ngoId) {
+    case 'pratham':
+      return '#0B4A7D'; // Bajaj Heritage Blue
+    case 'smile':
+      return '#B5532A'; // Mineral Terracotta
+    case 'goonj':
+    case 'educate-girls':
+    case 'room-to-read':
+    default:
+      return '#2E6B4E'; // Botanical Moss
+  }
+}
+
 // ─── OPERATIONAL ERP & FIELD MOBILE ENTITIES ─────────────────────────────────
 
 export interface BatchRecord {

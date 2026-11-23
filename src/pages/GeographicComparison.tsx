@@ -17,12 +17,14 @@ import {
   QrCode,
   ArrowRight,
   ChevronLeft,
+  Check,
 } from 'lucide-react';
 import {
   useImpactStore,
   type ProgramType,
   type OperationalCentre,
   type ServiceGapBlock,
+  getNgoColor,
 } from '../data/impactStore';
 import { SpatialMap, type MapDisplayLayer } from '../components/SpatialMap';
 
@@ -302,6 +304,10 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
     portfolioBenchmarks,
     earmarkReserveForGap,
     portfolio,
+    decisions,
+    approveTranche,
+    holdTranche,
+    fieldErpPulse,
   } = useImpactStore();
 
   // Navigation & Drilldown State
@@ -315,6 +321,9 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState<boolean>(false);
   const [districtSubTab, setDistrictSubTab] = useState<'ngos' | 'centres' | 'gaps'>('ngos');
   const [dpdpExplanationExpanded, setDpdpExplanationExpanded] = useState<boolean>(false);
+  const [inspectorMode, setInspectorMode] = useState<'today' | 'explore'>('today');
+  const [mobileTab, setMobileTab] = useState<'today' | 'map'>('today');
+  const [approvingPratham, setApprovingPratham] = useState<boolean>(false);
 
   // View Mode: Map Workbench vs Table Matrix
   const [viewMode, setViewMode] = useState<'map' | 'table'>('map');
@@ -535,6 +544,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
       const target = canonicalGroupedDistricts.find((d) => d.id === dist);
       if (target) setSelectedState(target.state);
       setIsInspectorCollapsed(false);
+      setInspectorMode('explore');
+      setMobileTab('map');
     }
   }, [canonicalGroupedDistricts]);
 
@@ -553,6 +564,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
         setSelectedState(target.state);
       }
       setIsInspectorCollapsed(false);
+      setInspectorMode('explore');
+      setMobileTab('map');
     }
   }, [canonicalGroupedDistricts]);
 
@@ -566,8 +579,206 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
     setIs3D(false);
   }, []);
 
+  const renderTodayDecisions = () => {
+    const prathamDec = decisions.find(d => d.id === 'dec-pratham');
+    const magicBusDec = decisions.find(d => d.id === 'dec-magic-bus');
+    const prathamApproved = prathamDec?.status === 'approved';
+    const magicBusHeld = magicBusDec?.status === 'held';
+
+    return (
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 select-none">
+        {/* Section Header */}
+        <div className="flex items-center justify-between pb-1 border-b border-[#E3DDD0]">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0B4A7D] block">
+              Executive Queue
+            </span>
+            <h3 className="font-serif text-sm font-bold text-[#181D24]">
+              Pending CSR Decisions (3)
+            </h3>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-[#FDF4E3] border border-[#A86414]/30 text-[#A86414] text-[10px] font-bold">
+            Action Required
+          </span>
+        </div>
+
+        {/* Card 1: Pratham Pune Tranche */}
+        <div
+          onMouseEnter={() => {
+            setSelectedDistrictId('pune');
+            setSelectedState('Maharashtra');
+          }}
+          className="p-3 rounded-xl bg-[#FCFBF8] border border-[#E3DDD0] hover:border-[#0B4A7D] transition-all duration-150 space-y-2 shadow-2xs group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#0B4A7D]" />
+                <span className="text-xs font-bold text-[#181D24]">Pratham Foundation</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#E8F3EC] text-[#2E6B4E] font-bold">
+                  Pune
+                </span>
+              </div>
+              <p className="text-[11px] text-[#646058] mt-1 leading-relaxed">
+                96/100 audit score · 99.4% GPS match; +₹1,600/mo verified income lift.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-[#0B4A7D] font-mono whitespace-nowrap">
+              ₹40 L Tranche 2
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-[#E3DDD0]/50 text-xs">
+            <span className="text-[10px] text-[#8C8479]">Milestone M6 Cleared</span>
+            {prathamApproved ? (
+              <span className="px-2 py-0.5 rounded-lg bg-[#E8F3EC] text-[#2E6B4E] font-bold text-xs flex items-center gap-1">
+                <Check size={13} strokeWidth={2.5} /> Approved ✓
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={approvingPratham}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setApprovingPratham(true);
+                  setTimeout(() => {
+                    approveTranche('dec-pratham');
+                    setApprovingPratham(false);
+                    setReserveToast('₹40 L Tranche released to Pratham Foundation HDFC Escrow account.');
+                    setTimeout(() => setReserveToast(null), 3000);
+                  }, 350);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-[#0B4A7D] text-white font-semibold text-xs hover:bg-[#083A63] transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+              >
+                {approvingPratham ? 'Releasing...' : 'Release ₹40 L'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Card 2: Magic Bus Thane Audit Hold */}
+        <div
+          onClick={() => {
+            setSelectedDistrictId('thane');
+            setSelectedState('Maharashtra');
+          }}
+          className="p-3 rounded-xl bg-[#FCFBF8] border border-[#B42318]/30 hover:border-[#B42318] transition-all duration-150 space-y-2 shadow-2xs cursor-pointer group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#B42318]" />
+                <span className="text-xs font-bold text-[#181D24]">Magic Bus (Thane)</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#FCECEB] text-[#B42318] font-bold">
+                  Audit Hold
+                </span>
+              </div>
+              <p className="text-[11px] text-[#646058] mt-1 leading-relaxed">
+                Audit flagged 74/100 · 142 GPS coordinate anomalies in Kalwa.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-[#B42318] font-mono whitespace-nowrap">
+              ₹35 L at Risk
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-[#E3DDD0]/50 text-xs">
+            <span className="text-[10px] text-[#B42318]">Click to inspect Thane flags</span>
+            {magicBusHeld ? (
+              <span className="px-2 py-0.5 rounded-lg bg-[#FCECEB] text-[#B42318] font-bold text-xs flex items-center gap-1">
+                <Check size={13} strokeWidth={2.5} /> On Hold ✓
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  holdTranche('dec-magic-bus');
+                  setSelectedDistrictId('thane');
+                  setSelectedState('Maharashtra');
+                  setReserveToast('Magic Bus Thane escrow placed on formal audit hold.');
+                  setTimeout(() => setReserveToast(null), 3000);
+                }}
+                className="px-2.5 py-1 rounded-lg border border-[#B42318] bg-[#FCECEB] text-[#B42318] font-semibold text-xs hover:bg-[#B42318] hover:text-white transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+              >
+                Review &amp; Hold
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Card 3: Unspent Corpus Reserve */}
+        <div
+          onClick={() => {
+            handleLayerChange('service_gaps');
+          }}
+          className="p-3 rounded-xl bg-[#FCFBF8] border border-[#E3DDD0] hover:border-[#A86414] transition-all duration-150 space-y-2 shadow-2xs cursor-pointer group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#A86414]" />
+                <span className="text-xs font-bold text-[#181D24]">FY25 Statutory Reserve</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#FDF4E3] text-[#A86414] font-bold">
+                  128 Days Left
+                </span>
+              </div>
+              <p className="text-[11px] text-[#646058] mt-1 leading-relaxed">
+                ₹3.6 Cr unallocated. 3 high-need rural blocks in Chhindwara, Pune Rural &amp; Coimbatore ready for deployment.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-[#A86414] font-mono whitespace-nowrap">
+              ₹3.6 Cr Ready
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-[#E3DDD0]/50 text-xs">
+            <span className="text-[10px] text-[#646058]">Statutory March 31 Deadline</span>
+            <span className="text-xs font-semibold text-[#0B4A7D] group-hover:underline flex items-center gap-0.5">
+              View Service Gaps →
+            </span>
+          </div>
+        </div>
+
+        {/* Live Field Activity Stream */}
+        <div className="p-3 rounded-xl bg-[#F6F3EC] border border-[#E3DDD0] space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#2E6B4E] animate-pulse" />
+              <span className="text-xs font-bold text-[#181D24]">Live Field Activity</span>
+            </div>
+            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#E8F3EC] text-[#2E6B4E]">
+              Pratham Pune Node Live
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-1 border-t border-[#E3DDD0] text-center">
+            <div className="p-1.5 rounded-lg bg-[#FCFBF8] border border-[#E3DDD0]/60">
+              <span className="text-[8px] text-[#8C8479] uppercase font-bold block">SYNCED M6</span>
+              <span className="text-xs font-bold text-[#2E6B4E] tabular-nums font-mono">
+                {fieldErpPulse.syncedSurveysCount}
+              </span>
+            </div>
+            <div className="p-1.5 rounded-lg bg-[#FCFBF8] border border-[#E3DDD0]/60">
+              <span className="text-[8px] text-[#8C8479] uppercase font-bold block">ATTENDANCE</span>
+              <span className="text-xs font-bold text-[#181D24] tabular-nums">
+                {fieldErpPulse.weeklyAttendancePct}%
+              </span>
+            </div>
+            <div className="p-1.5 rounded-lg bg-[#FCFBF8] border border-[#E3DDD0]/60">
+              <span className="text-[8px] text-[#8C8479] uppercase font-bold block">PENDING QA</span>
+              <span className="text-xs font-bold text-[#A86414] tabular-nums font-mono">
+                {fieldErpPulse.pendingQACount}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="relative w-full min-h-[calc(100dvh-56px)] lg:h-[calc(100dvh-56px)] flex flex-col lg:block bg-[#F3EFE6] select-none">
+    <div className="relative w-full min-h-[calc(100dvh-56px)] lg:h-[calc(100dvh-56px)] flex flex-col bg-[#F3EFE6] select-none">
       {/* ── TOAST NOTIFICATION ── */}
       <AnimatePresence>
         {reserveToast && (
@@ -592,6 +803,170 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── DESKTOP 56px SLIM EXECUTIVE STRIP (Desktop lg:) ── */}
+      <div className="hidden lg:flex h-14 bg-[#FCFBF8] border-b border-[#E3DDD0] px-5 items-center justify-between z-20 relative flex-shrink-0 select-none">
+        {/* Stat 1: Disbursement & Sparkline */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] flex items-center justify-center text-[#2E6B4E] font-bold text-xs flex-shrink-0">
+            ₹
+          </div>
+          <div className="flex items-center gap-2">
+            <div>
+              <div className="text-xs font-bold text-[#181D24] flex items-center gap-1.5">
+                <span>₹38.4 of ₹42.0 Cr used</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#E8F3EC] text-[#2E6B4E]">91.4%</span>
+              </div>
+              <span className="text-[10px] text-[#646058] block">Disbursed on milestone delivery</span>
+            </div>
+            {/* Inline Tufte SVG Sparkline */}
+            <svg width="44" height="18" viewBox="0 0 44 18" className="stroke-[#2E6B4E] fill-none stroke-[1.8] flex-shrink-0">
+              <polyline points="2,14 14,11 26,7 40,2" />
+              <circle cx="40" cy="2" r="2.5" className="fill-[#2E6B4E]" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="h-6 w-px bg-[#E3DDD0]" />
+
+        {/* Stat 2: Total Reach */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#0B4A7D]/10 flex items-center justify-center text-[#0B4A7D] font-bold text-xs flex-shrink-0">
+            👥
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#181D24]">42,850 women reached</div>
+            <span className="text-[10px] text-[#646058] block">28.4k Business · 14.4k Reading</span>
+          </div>
+        </div>
+
+        <div className="h-6 w-px bg-[#E3DDD0]" />
+
+        {/* Stat 3: Partner Health */}
+        <div
+          onClick={() => {
+            setSelectedDistrictId('thane');
+            setSelectedState('Maharashtra');
+            setInspectorMode('explore');
+          }}
+          className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 transition-opacity"
+          title="Click to inspect Thane Audit Hold"
+        >
+          <div className="w-8 h-8 rounded-xl bg-[#FCECEB] flex items-center justify-center text-[#B42318] font-bold text-xs flex-shrink-0">
+            ⚠️
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#181D24] flex items-center gap-1">
+              <span>5 of 6 partners on track</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#FCECEB] text-[#B42318]">1 Hold</span>
+            </div>
+            <span className="text-[10px] text-[#B42318] block hover:underline">Magic Bus Thane on audit hold →</span>
+          </div>
+        </div>
+
+        <div className="h-6 w-px bg-[#E3DDD0]" />
+
+        {/* Stat 4: Unplaced Corpus Urgency */}
+        <div
+          onClick={() => {
+            handleLayerChange('service_gaps');
+            setInspectorMode('explore');
+          }}
+          className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 transition-opacity"
+          title="Click to view Service Gaps"
+        >
+          <div className="w-8 h-8 rounded-xl bg-[#FDF4E3] flex items-center justify-center text-[#A86414] font-bold text-xs flex-shrink-0">
+            ⏳
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#181D24] flex items-center gap-1">
+              <span>₹3.6 Cr unplaced</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#FDF4E3] text-[#A86414]">128 days left</span>
+            </div>
+            <span className="text-[10px] text-[#646058] block hover:underline">Unserved rural blocks ready →</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MOBILE 2×2 COMPACT KPI STRIP (< lg) ── */}
+      <div className="lg:hidden grid grid-cols-2 gap-2 p-2.5 bg-[#FCFBF8] border-b border-[#E3DDD0]">
+        <div className="p-2 rounded-xl bg-[#EFECE4]/60 border border-[#E3DDD0]">
+          <span className="text-[9px] uppercase font-bold text-[#8C8479] tracking-wider block">DISBURSEMENT</span>
+          <div className="text-xs font-bold text-[#181D24]">₹38.4 / 42.0 Cr (91.4%)</div>
+          <span className="text-[9px] text-[#2E6B4E]">On track Q4</span>
+        </div>
+        <div className="p-2 rounded-xl bg-[#EFECE4]/60 border border-[#E3DDD0]">
+          <span className="text-[9px] uppercase font-bold text-[#8C8479] tracking-wider block">TOTAL REACH</span>
+          <div className="text-xs font-bold text-[#181D24]">42,850 women</div>
+          <span className="text-[9px] text-[#646058]">28.4k Biz · 14.4k Lit</span>
+        </div>
+        <div
+          onClick={() => {
+            setSelectedDistrictId('thane');
+            setSelectedState('Maharashtra');
+            setMobileTab('map');
+            setInspectorMode('explore');
+          }}
+          className="p-2 rounded-xl bg-[#FCECEB]/80 border border-[#B42318]/30 cursor-pointer"
+        >
+          <span className="text-[9px] uppercase font-bold text-[#B42318] tracking-wider block">HEALTH</span>
+          <div className="text-xs font-bold text-[#181D24]">5 of 6 on track</div>
+          <span className="text-[9px] text-[#B42318] font-bold">1 Audit Hold (Thane)</span>
+        </div>
+        <div
+          onClick={() => {
+            handleLayerChange('service_gaps');
+            setMobileTab('map');
+            setInspectorMode('explore');
+          }}
+          className="p-2 rounded-xl bg-[#FDF4E3]/80 border border-[#A86414]/30 cursor-pointer"
+        >
+          <span className="text-[9px] uppercase font-bold text-[#A86414] tracking-wider block">UNPLACED CORPUS</span>
+          <div className="text-xs font-bold text-[#181D24]">₹3.6 Cr unplaced</div>
+          <span className="text-[9px] text-[#A86414] font-bold">128 days remaining</span>
+        </div>
+      </div>
+
+      {/* ── MOBILE SINGLE SEGMENTED TOGGLE (< lg) ── */}
+      <div className="lg:hidden px-3 py-2 bg-[#FCFBF8] border-b border-[#E3DDD0] flex items-center">
+        <div className="w-full bg-[#EFECE4] p-0.5 rounded-xl flex items-center text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setMobileTab('today')}
+            className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
+              mobileTab === 'today'
+                ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                : 'text-[#646058] hover:text-[#181D24]'
+            }`}
+          >
+            Today (3)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileTab('map');
+              setInspectorMode('explore');
+            }}
+            className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
+              mobileTab === 'map'
+                ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                : 'text-[#646058] hover:text-[#181D24]'
+            }`}
+          >
+            Spatial Map
+          </button>
+        </div>
+      </div>
+
+      {/* ── MOBILE TODAY DECISIONS VIEW (Only on mobile when mobileTab === 'today') ── */}
+      {mobileTab === 'today' && (
+        <div className="lg:hidden flex-1 overflow-y-auto">
+          {renderTodayDecisions()}
+        </div>
+      )}
+
+      {/* ── SPATIAL MAP WORKBENCH & INSPECTOR WRAPPER ── */}
+      <div className={`relative w-full flex-1 min-h-0 overflow-hidden ${mobileTab === 'today' ? 'hidden lg:block' : 'flex'} flex-col lg:block`}>
 
       {/* ── TABLE VIEW (Full Overlay Matrix) ── */}
       {viewMode === 'table' && (
@@ -802,7 +1177,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
       </nav>
 
       {/* ── MAP CANVAS (44dvh Stacked on Mobile < lg, Full-Bleed Inset on Desktop lg:) ── */}
-      <div className="relative w-full h-[44dvh] min-h-[280px] flex-shrink-0 lg:absolute lg:inset-0 lg:w-full lg:h-full">
+      <div className="relative w-full h-[44dvh] min-h-[280px] flex-shrink-0 lg:absolute lg:inset-0 lg:w-full lg:h-full lg:z-0">
         <SpatialMap
           selectedDistrictId={selectedDistrictId}
           selectedState={selectedState}
@@ -981,10 +1356,51 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
 
       {/* ── ACTIVE CHAPTER INSPECTOR (Normal Flow on Mobile < lg, Floating Right on Desktop lg:) ── */}
       <aside
-        className={`relative w-full bg-[#FCFBF8] flex-1 flex flex-col border-t border-[#E3DDD0] lg:border-t-0 lg:absolute lg:top-4 lg:right-4 lg:bottom-4 lg:w-[376px] lg:z-20 lg:bg-[#FCFBF8]/95 lg:backdrop-blur-md lg:border lg:border-[#E3DDD0] lg:rounded-2xl lg:shadow-xl lg:max-h-[calc(100%-32px)] lg:overflow-hidden ${
+        className={`relative w-full bg-[#FCFBF8] flex-1 flex flex-col border-t border-[#E3DDD0] lg:border-t-0 lg:absolute lg:top-4 lg:right-4 lg:bottom-4 lg:w-[376px] lg:z-30 lg:bg-[#FCFBF8]/95 lg:backdrop-blur-md lg:border lg:border-[#E3DDD0] lg:rounded-2xl lg:shadow-xl lg:max-h-[calc(100%-32px)] lg:overflow-hidden ${
           isInspectorCollapsed ? 'lg:hidden' : 'lg:flex'
         }`}
       >
+        {/* Desktop Top Inspector Mode Toggle (Hidden on mobile < lg so there is strictly ONE toggle!) */}
+        <div className="hidden lg:flex p-2.5 border-b border-[#E3DDD0] bg-[#FCFBF8] items-center justify-between flex-shrink-0">
+          <div className="bg-[#EFECE4] p-0.5 rounded-xl flex items-center text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setInspectorMode('today')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                inspectorMode === 'today'
+                  ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                  : 'text-[#646058] hover:text-[#181D24]'
+              }`}
+            >
+              Today (3)
+            </button>
+            <button
+              type="button"
+              onClick={() => setInspectorMode('explore')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                inspectorMode === 'explore'
+                  ? 'bg-[#0B4A7D] text-white shadow-2xs'
+                  : 'text-[#646058] hover:text-[#181D24]'
+              }`}
+            >
+              Explore Map
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsInspectorCollapsed(true)}
+            className="p-1 rounded-md text-[#8C8479] hover:text-[#181D24] hover:bg-[#EFECE4] transition-colors cursor-pointer"
+            title="Hide Inspector"
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
+
+        {inspectorMode === 'today' ? (
+          renderTodayDecisions()
+        ) : (
+          <>
             {/* ── CHAPTER 1: TERRITORY OVERVIEW ── */}
             {activeChapter === 1 && (
               <div className="flex-1 flex flex-col min-h-0">
@@ -994,7 +1410,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                     <span className="text-[10px] uppercase font-bold text-[#8C8479] tracking-wider block">
                       Territory Overview
                     </span>
-                    <h2 className="font-narrative text-sm font-bold text-[#181D24]">
+                    <h2 className="font-serif text-sm font-bold text-[#181D24]">
                       Operating Footprint ({filteredDistricts.length} Districts)
                     </h2>
                   </div>
@@ -1116,7 +1532,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                   <div>
                     <div className="flex items-center gap-1.5">
                       <MapPin size={15} className="text-[#0B4A7D]" />
-                      <h2 data-testid="district-story-heading" className="font-narrative text-base font-bold text-[#181D24]">
+                      <h2 data-testid="district-story-heading" className="font-serif text-base font-bold text-[#181D24]">
                         {activeDistrictSummary.name} District
                       </h2>
                       <span className="text-[9px] font-semibold text-[#646058] bg-[#E3DDD0] px-1.5 py-0.2 rounded">
@@ -1229,21 +1645,40 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                       <div className="space-y-2.5">
                         {activeDistrictAllocations.map((alloc) => {
                           const isLeader = alloc.impactIndex >= activeDistrictSummary.weightedImpact;
+                          const isSpotlighted = selectedNgoId === alloc.ngoId;
+                          const ngoColor = getNgoColor(alloc.ngoId, activeDistrictSummary.id);
                           return (
                             <div
                               key={alloc.id}
-                              className="p-2.5 rounded-xl bg-[#EFECE4]/50 border border-[#E3DDD0] space-y-1.5"
+                              onClick={() => {
+                                // Toggle 1-Click NGO Spotlight Filter
+                                setSelectedNgoId(isSpotlighted ? null : alloc.ngoId);
+                              }}
+                              className={`p-2.5 rounded-xl transition-all cursor-pointer space-y-1.5 ${
+                                isSpotlighted
+                                  ? 'bg-[#FCFBF8] border-2 shadow-sm'
+                                  : 'bg-[#EFECE4]/50 border border-[#E3DDD0] hover:border-[#0B4A7D] hover:bg-[#FCFBF8]'
+                              }`}
+                              style={{
+                                borderColor: isSpotlighted ? ngoColor : undefined,
+                              }}
                             >
                               <div className="flex items-center justify-between text-xs">
                                 <span className="font-bold text-[#181D24] flex items-center gap-1.5">
+                                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ngoColor }} />
                                   <span>{alloc.ngoName}</span>
-                                  {isLeader && (
+                                  {isSpotlighted && (
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded font-bold text-white shadow-2xs" style={{ backgroundColor: ngoColor }}>
+                                      Spotlight Active
+                                    </span>
+                                  )}
+                                  {isLeader && !isSpotlighted && (
                                     <span className="text-[9px] px-1 py-0.2 rounded bg-[#E8F3EC] text-[#2E6B4E] font-semibold">
                                       Leader
                                     </span>
                                   )}
                                 </span>
-                                <span className="font-bold text-[#0B4A7D] font-mono">
+                                <span className="font-bold font-mono" style={{ color: ngoColor }}>
                                   {alloc.impactIndex}/100
                                 </span>
                               </div>
@@ -1251,16 +1686,11 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                               {/* Benchmark bar */}
                               <div className="w-full h-2 bg-[#E3DDD0] rounded-full overflow-hidden">
                                 <div
-                                  className={`h-full rounded-full ${
-                                    alloc.auditStatus === 'flagged'
-                                      ? 'bg-[#B42318]'
-                                      : alloc.ngoId === 'magic-bus'
-                                      ? 'bg-[#A86414]'
-                                      : alloc.impactIndex >= 80
-                                      ? 'bg-[#2E6B4E]'
-                                      : 'bg-[#0B4A7D]'
-                                  }`}
-                                  style={{ width: `${alloc.impactIndex}%` }}
+                                  className="h-full rounded-full transition-all duration-300"
+                                  style={{
+                                    width: `${alloc.impactIndex}%`,
+                                    backgroundColor: ngoColor,
+                                  }}
                                 />
                               </div>
 
@@ -1393,7 +1823,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                 <div className="p-3.5 border-b border-[#E3DDD0] flex items-start justify-between bg-[#EFECE4]/50 flex-shrink-0">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
-                      <h2 data-testid="centre-story-heading" className="font-narrative text-base font-bold text-[#181D24] truncate max-w-[200px]">
+                      <h2 data-testid="centre-story-heading" className="font-serif text-base font-bold text-[#181D24] truncate max-w-[200px]">
                         {selectedCentre.name}
                       </h2>
                       <span
@@ -1516,7 +1946,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                     <span className="text-[10px] uppercase font-bold text-[#0B4A7D] tracking-wider block">
                       Individual Impact 360°
                     </span>
-                    <h2 data-testid="beneficiary-story-heading" className="font-narrative text-base font-bold text-[#181D24]">
+                    <h2 data-testid="beneficiary-story-heading" className="font-serif text-base font-bold text-[#181D24]">
                       Beneficiary #{selectedBeneficiary.token}
                     </h2>
                     <p className="text-[10px] text-[#646058]">
@@ -1677,7 +2107,10 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                 </div>
               </div>
             )}
-          </aside>
+          </>
+        )}
+      </aside>
     </div>
-  );
+  </div>
+);
 };
