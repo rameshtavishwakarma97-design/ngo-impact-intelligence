@@ -308,6 +308,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
     approveTranche,
     holdTranche,
     fieldErpPulse,
+    openIssuesCount,
   } = useImpactStore();
 
   // Navigation & Drilldown State
@@ -333,7 +334,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
   const [is3D, setIs3D] = useState<boolean>(false);
   const [programFilter, setProgramFilter] = useState<'all' | ProgramType>('all');
   const [formulaOpen, setFormulaOpen] = useState<boolean>(false);
-  const [reserveToast, setReserveToast] = useState<string | null>(null);
+  const [reserveToast, setReserveToast] = useState<{ title: string; message: string } | null>(null);
 
   // Auto-switch district subtab when clicking Service Gaps on dock
   const handleLayerChange = (layer: MapDisplayLayer) => {
@@ -530,7 +531,10 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
   // Handle reserve earmarking
   const handleEarmark = (block: ServiceGapBlock) => {
     earmarkReserveForGap(block.id, block.recommendedAllocationCr);
-    setReserveToast(`Committed ₹${block.recommendedAllocationCr.toFixed(2)} Cr from Bajaj Corpus Reserve to ${block.name}`);
+    setReserveToast({
+      title: 'Corpus Reserve Earmarked',
+      message: `Committed ₹${block.recommendedAllocationCr.toFixed(2)} Cr from Bajaj Corpus Reserve to ${block.name}`,
+    });
     setTimeout(() => setReserveToast(null), 4000);
   };
 
@@ -644,8 +648,11 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                   setTimeout(() => {
                     approveTranche('dec-pratham');
                     setApprovingPratham(false);
-                    setReserveToast('₹40 L Tranche released to Pratham Foundation HDFC Escrow account.');
-                    setTimeout(() => setReserveToast(null), 3000);
+                    setReserveToast({
+                      title: 'Tranche Released ✓',
+                      message: '₹40 L Tranche released to Pratham Foundation HDFC Escrow account.',
+                    });
+                    setTimeout(() => setReserveToast(null), 3500);
                   }, 350);
                 }}
                 className="px-2.5 py-1 rounded-lg bg-[#0B4A7D] text-white font-semibold text-xs hover:bg-[#083A63] transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
@@ -696,8 +703,11 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
                   holdTranche('dec-magic-bus');
                   setSelectedDistrictId('thane');
                   setSelectedState('Maharashtra');
-                  setReserveToast('Magic Bus Thane escrow placed on formal audit hold.');
-                  setTimeout(() => setReserveToast(null), 3000);
+                  setReserveToast({
+                    title: 'Audit Hold Placed',
+                    message: 'Magic Bus Thane escrow placed on formal audit hold.',
+                  });
+                  setTimeout(() => setReserveToast(null), 3500);
                 }}
                 className="px-2.5 py-1 rounded-lg border border-[#B42318] bg-[#FCECEB] text-[#B42318] font-semibold text-xs hover:bg-[#B42318] hover:text-white transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
               >
@@ -790,8 +800,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
           >
             <CheckCircle2 size={18} className="flex-shrink-0 text-[#B4E3C6]" />
             <div className="space-y-0.5">
-              <span className="font-bold block">Corpus Reserve Earmarked</span>
-              <p className="text-white/90 text-[11px]">{reserveToast}</p>
+              <span className="font-bold block">{reserveToast.title}</span>
+              <p className="text-white/90 text-[11px]">{reserveToast.message}</p>
             </div>
             <button
               type="button"
@@ -814,8 +824,8 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
           <div className="flex items-center gap-2">
             <div>
               <div className="text-xs font-bold text-[#181D24] flex items-center gap-1.5">
-                <span>₹38.4 of ₹42.0 Cr used</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#E8F3EC] text-[#2E6B4E]">91.4%</span>
+                <span>₹{portfolio.disbursedCr.toFixed(1)} of ₹42.0 Cr used</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#E8F3EC] text-[#2E6B4E]">{portfolio.disbursedPct.toFixed(1)}%</span>
               </div>
               <span className="text-[10px] text-[#646058] block">Disbursed on milestone delivery</span>
             </div>
@@ -844,20 +854,16 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
 
         {/* Stat 3: Partner Health */}
         <div
-          onClick={() => {
-            setSelectedDistrictId('thane');
-            setSelectedState('Maharashtra');
-            setInspectorMode('explore');
-          }}
+          onClick={() => onNavigate?.('operations')}
           className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 transition-opacity"
-          title="Click to inspect Thane Audit Hold"
+          title="Click to view NGO Health & Trust"
         >
           <div className="w-8 h-8 rounded-xl bg-[#FCECEB] flex items-center justify-center text-[#B42318] font-bold text-xs flex-shrink-0">
             ⚠️
           </div>
           <div>
             <div className="text-xs font-bold text-[#181D24] flex items-center gap-1">
-              <span>5 of 6 partners on track</span>
+              <span>1 Flagged · {openIssuesCount} Need Help</span>
               <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#FCECEB] text-[#B42318]">1 Hold</span>
             </div>
             <span className="text-[10px] text-[#B42318] block hover:underline">Magic Bus Thane on audit hold →</span>
@@ -892,7 +898,7 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
       <div className="lg:hidden grid grid-cols-2 gap-2 p-2.5 bg-[#FCFBF8] border-b border-[#E3DDD0]">
         <div className="p-2 rounded-xl bg-[#EFECE4]/60 border border-[#E3DDD0]">
           <span className="text-[9px] uppercase font-bold text-[#8C8479] tracking-wider block">DISBURSEMENT</span>
-          <div className="text-xs font-bold text-[#181D24]">₹38.4 / 42.0 Cr (91.4%)</div>
+          <div className="text-xs font-bold text-[#181D24]">₹{portfolio.disbursedCr.toFixed(1)} / 42.0 Cr ({portfolio.disbursedPct.toFixed(1)}%)</div>
           <span className="text-[9px] text-[#2E6B4E]">On track Q4</span>
         </div>
         <div className="p-2 rounded-xl bg-[#EFECE4]/60 border border-[#E3DDD0]">
@@ -901,16 +907,11 @@ export const GeographicComparison: React.FC<GeographicComparisonProps> = ({ onNa
           <span className="text-[9px] text-[#646058]">28.4k Biz · 14.4k Lit</span>
         </div>
         <div
-          onClick={() => {
-            setSelectedDistrictId('thane');
-            setSelectedState('Maharashtra');
-            setMobileTab('map');
-            setInspectorMode('explore');
-          }}
+          onClick={() => onNavigate?.('operations')}
           className="p-2 rounded-xl bg-[#FCECEB]/80 border border-[#B42318]/30 cursor-pointer"
         >
           <span className="text-[9px] uppercase font-bold text-[#B42318] tracking-wider block">HEALTH</span>
-          <div className="text-xs font-bold text-[#181D24]">5 of 6 on track</div>
+          <div className="text-xs font-bold text-[#181D24]">1 Flagged · {openIssuesCount} Need Help</div>
           <span className="text-[9px] text-[#B42318] font-bold">1 Audit Hold (Thane)</span>
         </div>
         <div

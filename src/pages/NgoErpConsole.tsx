@@ -35,10 +35,18 @@ export const NgoErpConsole: React.FC<NgoErpConsoleProps> = ({
     approveAndPublishSurvey,
     returnSurvey,
     assignHomeVisit,
+    raiseNgoIssue,
   } = useImpactStore();
 
   const [internalActiveTab] = useState<'batches' | 'beneficiaries' | 'qa_queue'>('batches');
   const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
+
+  // Raise Issue Modal State (Pass 2 Two-Sided Communication Loop)
+  const [raiseModalOpen, setRaiseModalOpen] = useState<boolean>(false);
+  const [issueCategory, setIssueCategory] = useState<string>('Banking / Escrow');
+  const [issueTitle, setIssueTitle] = useState<string>('');
+  const [issueContext, setIssueContext] = useState<string>('');
+  const [issueHelpNeeded, setIssueHelpNeeded] = useState<string>('');
 
   // Filters for Beneficiary Ledger
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,6 +188,27 @@ export const NgoErpConsole: React.FC<NgoErpConsoleProps> = ({
     setReturnReasonInput('');
   };
 
+  // Submit Partner Issue to Bajaj CSR (Two-Sided Communication Loop)
+  const handleRaiseIssueSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!issueTitle.trim() || !issueContext.trim() || !issueHelpNeeded.trim()) return;
+    raiseNgoIssue(
+      'pratham',
+      issueCategory,
+      issueTitle.trim(),
+      issueContext.trim(),
+      issueHelpNeeded.trim()
+    );
+    setRaiseModalOpen(false);
+    setIssueTitle('');
+    setIssueContext('');
+    setIssueHelpNeeded('');
+    showToast(
+      'Issue Escalated to Bajaj CSR ✓',
+      'Ticket dispatched directly to Suman Bajaj leadership inbox.'
+    );
+  };
+
   return (
     <div className="space-y-8 pb-20">
       {/* ── SONNER STACKED TOAST ────────────────────────────────────── */}
@@ -207,7 +236,7 @@ export const NgoErpConsole: React.FC<NgoErpConsoleProps> = ({
             </p>
           </div>
 
-          {/* Quick Metrics Badges */}
+          {/* Quick Metrics Badges & Escalation Button */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
             <div className="px-3 py-1.5 rounded-lg bg-[#F7F4ED] border border-[#E5DFD3] text-[#1C1917] font-semibold tabular-nums">
               <span className="text-[#8C8479] font-normal mr-1.5">Synced to Bajaj:</span>
@@ -221,6 +250,15 @@ export const NgoErpConsole: React.FC<NgoErpConsoleProps> = ({
               <span className="text-[#8C8479] font-normal mr-1.5">Active Officers:</span>
               3
             </div>
+
+            <button
+              type="button"
+              onClick={() => setRaiseModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-[#0B4A7D] text-white text-xs font-semibold hover:bg-[#083A63] transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 active:scale-[0.98]"
+            >
+              <AlertTriangle size={13} />
+              <span>+ Raise Issue to Bajaj</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1265,6 +1303,119 @@ export const NgoErpConsole: React.FC<NgoErpConsoleProps> = ({
                 Confirm Return
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── RAISE ISSUE MODAL (TWO-SIDED PARTNER ACCOUNTABILITY LOOP) ── */}
+      {raiseModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setRaiseModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-[#FCFBF8] border border-[#E5DFD3] rounded-2xl p-6 space-y-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#E5DFD3] pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#0B4A7D]">
+                  Field Escalation Channel
+                </span>
+                <h3 className="font-narrative text-lg font-normal text-[#1C1917] mt-0.5">
+                  Raise Operational Issue to Bajaj CSR
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRaiseModalOpen(false)}
+                className="p-1 rounded-md text-[#8C8479] hover:text-[#1C1917]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#6B655C] leading-relaxed">
+              Submit field blockers, government delays, or banking bottlenecks directly to Suman Bajaj. This creates an open ticket in the Bajaj <strong>NGO Health &amp; Trust</strong> console.
+            </p>
+
+            <form onSubmit={handleRaiseIssueSubmit} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[#1C1917]">
+                  Category
+                </label>
+                <select
+                  value={issueCategory}
+                  onChange={(e) => setIssueCategory(e.target.value)}
+                  className="w-full p-2.5 text-xs rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] outline-none text-[#1C1917]"
+                >
+                  <option value="Banking / Escrow">Banking / Escrow &amp; Merchant QR</option>
+                  <option value="Government / Permits">Government / Municipal &amp; School Permits</option>
+                  <option value="Field Geofencing">Field Telemetry &amp; GPS Geofencing</option>
+                  <option value="Curriculum / Equipment">Curriculum / Equipment Delivery</option>
+                  <option value="Other">Other Operational Blocker</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[#1C1917]">
+                  Issue Summary Title
+                </label>
+                <input
+                  type="text"
+                  value={issueTitle}
+                  onChange={(e) => setIssueTitle(e.target.value)}
+                  placeholder="e.g. Bank branch manager delaying merchant QR onboarding in Hadapsar"
+                  className="w-full p-2.5 text-xs rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] outline-none text-[#1C1917]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[#1C1917]">
+                  Field Context &amp; Specific Impact
+                </label>
+                <textarea
+                  rows={2}
+                  value={issueContext}
+                  onChange={(e) => setIssueContext(e.target.value)}
+                  placeholder="Explain what is happening on the ground and which cohorts are affected..."
+                  className="w-full p-2.5 text-xs rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] outline-none text-[#1C1917] resize-none"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[#1C1917]">
+                  Specific Help Needed from Bajaj CSR
+                </label>
+                <input
+                  type="text"
+                  value={issueHelpNeeded}
+                  onChange={(e) => setIssueHelpNeeded(e.target.value)}
+                  placeholder="e.g. Connect Bajaj Corporate Banking team with branch manager"
+                  className="w-full p-2.5 text-xs rounded-xl bg-[#F7F4ED] border border-[#E5DFD3] outline-none text-[#1C1917]"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5DFD3]">
+                <button
+                  type="button"
+                  onClick={() => setRaiseModalOpen(false)}
+                  className="px-3.5 py-1.5 rounded-xl border border-[#E5DFD3] text-xs font-medium text-[#6B655C] hover:bg-[#EAE6DD]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!issueTitle.trim() || !issueContext.trim() || !issueHelpNeeded.trim()}
+                  className="px-4 py-1.5 rounded-xl bg-[#0B4A7D] text-white text-xs font-semibold hover:bg-[#083A63] shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Send to Bajaj CSR
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

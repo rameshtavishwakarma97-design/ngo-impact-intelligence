@@ -114,6 +114,31 @@ export interface NGOStoreRecord {
     unit: string;
     benchmark: number;
   }[];
+
+  // Plain Accountability Fields (Pass 2)
+  paiseToWomen?: number; // e.g. 89p
+  paiseOffice?: number; // e.g. 11p
+  areaDifficulty?: 'Big City' | 'Mid-Size Town' | 'Hard Rural Village';
+  healthStatus?: 'flagged' | 'needs_help' | 'slow_spend' | 'healthy';
+  idleMoneyCr?: number; // e.g. 1.0
+  fieldProofSummary?: string; // e.g. '99 of 100 real visits ✓'
+}
+
+export interface NgoIssue {
+  id: string;
+  ngoId: string;
+  ngoName: string;
+  district: string;
+  category: string;
+  title: string;
+  details: string;
+  waitingDays: number;
+  impact: string;
+  recommendedAction: string;
+  status: 'open' | 'resolved';
+  createdAt: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
 }
 
 export interface ScorecardMetric {
@@ -476,6 +501,11 @@ export const CANONICAL_NGOS: NGOStoreRecord[] = [
       { metric: '6-Mo Enterprise Survival', value: 78, unit: '%', benchmark: 60 },
       { metric: 'UPI QR Merchant Active', value: 68, unit: '%', benchmark: 45 },
     ],
+    paiseToWomen: 89,
+    paiseOffice: 11,
+    areaDifficulty: 'Big City',
+    healthStatus: 'healthy',
+    fieldProofSummary: '99 of 100 real visits ✓',
   },
 
   // ── 2. Smile Foundation (Micro-Skilling) ──
@@ -559,6 +589,11 @@ export const CANONICAL_NGOS: NGOStoreRecord[] = [
       { metric: '6-Mo Enterprise Survival', value: 74, unit: '%', benchmark: 60 },
       { metric: 'UPI QR Merchant Active', value: 65, unit: '%', benchmark: 45 },
     ],
+    paiseToWomen: 85,
+    paiseOffice: 15,
+    areaDifficulty: 'Mid-Size Town',
+    healthStatus: 'needs_help',
+    fieldProofSummary: '96 of 100 real visits ✓',
   },
 
   // ── 3. Goonj (Micro-Skilling) ──
@@ -642,6 +677,11 @@ export const CANONICAL_NGOS: NGOStoreRecord[] = [
       { metric: '6-Mo Enterprise Survival', value: 82, unit: '%', benchmark: 60 },
       { metric: 'UPI QR Merchant Active', value: 60, unit: '%', benchmark: 45 },
     ],
+    paiseToWomen: 91,
+    paiseOffice: 9,
+    areaDifficulty: 'Hard Rural Village',
+    healthStatus: 'healthy',
+    fieldProofSummary: '98 of 100 real visits ✓',
   },
 
   // ── 4. Magic Bus (Micro-Skilling) ──
@@ -726,6 +766,11 @@ export const CANONICAL_NGOS: NGOStoreRecord[] = [
       { metric: '6-Mo Enterprise Survival', value: 61, unit: '%', benchmark: 60 },
       { metric: 'UPI QR Merchant Active', value: 44, unit: '%', benchmark: 45 },
     ],
+    paiseToWomen: 74,
+    paiseOffice: 26,
+    areaDifficulty: 'Big City',
+    healthStatus: 'flagged',
+    fieldProofSummary: '142 forms in 1 cyber cafe',
   },
 
   // ── 5. Educate Girls (Literacy) ──
@@ -809,6 +854,12 @@ export const CANONICAL_NGOS: NGOStoreRecord[] = [
       { metric: 'FLN Level 3 Mastery', value: 84, unit: '%', benchmark: 65 },
       { metric: 'UPI Literacy Rate', value: 76, unit: '%', benchmark: 50 },
     ],
+    paiseToWomen: 88,
+    paiseOffice: 12,
+    areaDifficulty: 'Hard Rural Village',
+    healthStatus: 'slow_spend',
+    idleMoneyCr: 1.0,
+    fieldProofSummary: '97 of 100 real visits ✓',
   },
 
   // ── 6. Room to Read (Literacy) ──
@@ -892,6 +943,45 @@ export const CANONICAL_NGOS: NGOStoreRecord[] = [
       { metric: 'FLN Level 3 Mastery', value: 80, unit: '%', benchmark: 65 },
       { metric: 'UPI Literacy Rate', value: 72, unit: '%', benchmark: 50 },
     ],
+    paiseToWomen: 86,
+    paiseOffice: 14,
+    areaDifficulty: 'Mid-Size Town',
+    healthStatus: 'needs_help',
+    idleMoneyCr: 1.0,
+    fieldProofSummary: '97 of 100 real visits ✓',
+  },
+];
+
+// ─── PRE-SEEDED NGO ISSUES (TWO-SIDED ACCOUNTABILITY INBOX) ───────────────────
+
+export const INITIAL_NGO_ISSUES: NgoIssue[] = [
+  {
+    id: 'issue-smile-1',
+    ngoId: 'smile',
+    ngoName: 'Smile Foundation',
+    district: 'Coimbatore',
+    category: 'Banking / Escrow',
+    title: 'Local bank branches delaying small business loans',
+    details: 'Formal credit stuck at 31% vs 35% goal for Coimbatore textile cluster cohorts.',
+    waitingDays: 4,
+    impact: 'Formal credit stuck at 31% vs 35% goal',
+    recommendedAction: 'Connect Bajaj Banking Team',
+    status: 'open',
+    createdAt: '4 days ago',
+  },
+  {
+    id: 'issue-rtr-1',
+    ngoId: 'room-to-read',
+    ngoName: 'Room to Read',
+    district: 'Nashik',
+    category: 'Government / Permits',
+    title: 'District school library permit delayed 3 weeks',
+    details: 'Zilla Parishad education officer transfer delayed school literacy hub handover.',
+    waitingDays: 6,
+    impact: '₹1.0 Cr Q4 tranche stalled',
+    recommendedAction: 'Approve 30-Day Extension',
+    status: 'open',
+    createdAt: '6 days ago',
   },
 ];
 
@@ -2270,6 +2360,12 @@ export interface ImpactStoreContextType {
   approveAndPublishSurvey: (surveyId: string) => void;
   returnSurvey: (surveyId: string, reason: string) => void;
   assignHomeVisit: (beneficiaryId: string, notes: string) => void;
+
+  // NGO Accountability & Live Issues (Pass 2)
+  ngoIssues: NgoIssue[];
+  openIssuesCount: number;
+  raiseNgoIssue: (ngoId: string, category: string, title: string, details: string, ask: string) => void;
+  resolveNgoIssue: (issueId: string, resolutionNote?: string) => void;
 }
 
 const ImpactStoreContext = createContext<ImpactStoreContextType | null>(null);
@@ -2286,6 +2382,8 @@ export const ImpactStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [auditEvents, setAuditEvents] = useState<LiveAuditEvent[]>(INITIAL_AUDIT_EVENTS);
   const [auditCases, setAuditCases] = useState<AuditCaseRecord[]>(INITIAL_AUDIT_CASES);
   const [draftAllocation, setDraftAllocation] = useState<Record<string, number>>(DEFAULT_ALLOCATION);
+  const [ngoIssues, setNgoIssues] = useState<NgoIssue[]>(INITIAL_NGO_ISSUES);
+  const openIssuesCount = useMemo(() => ngoIssues.filter(i => i.status === 'open').length, [ngoIssues]);
 
   // Spatial Geographies & Multi-District Allocations State
   const [serviceGapBlocks, setServiceGapBlocks] = useState<ServiceGapBlock[]>(CANONICAL_SERVICE_GAP_BLOCKS);
@@ -3003,6 +3101,63 @@ export const ImpactStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setAuditEvents(prev => [newEvt, ...prev]);
   }, []);
 
+  // NGO Accountability Actions (Pass 2)
+  const raiseNgoIssue = useCallback((ngoId: string, category: string, title: string, details: string, ask: string) => {
+    const targetNgo = ngos.find(n => n.ngoId === ngoId);
+    const newIssue: NgoIssue = {
+      id: `issue-${Date.now()}`,
+      ngoId,
+      ngoName: targetNgo?.ngoName || 'Pratham Foundation',
+      district: targetNgo?.district || 'Pune',
+      category,
+      title,
+      details: `${details} (Ask: ${ask})`,
+      waitingDays: 0,
+      impact: ask,
+      recommendedAction: 'Review Issue with Partner',
+      status: 'open',
+      createdAt: 'Just now',
+    };
+    setNgoIssues(prev => [newIssue, ...prev]);
+
+    const newEvt: LiveAuditEvent = {
+      id: `EVT-${Date.now()}`,
+      timestamp: 'Just now',
+      type: 'survey_synced',
+      title: `Partner Issue Raised by ${targetNgo?.ngoName || ngoId}`,
+      detail: `${title} - Category: ${category}`,
+      actor: 'Partner Team Leader',
+      batchOrBeneficiary: targetNgo?.district || 'Field Hub',
+    };
+    setAuditEvents(prev => [newEvt, ...prev]);
+  }, [ngos]);
+
+  const resolveNgoIssue = useCallback((issueId: string, resolutionNote?: string) => {
+    setNgoIssues(prev =>
+      prev.map(issue =>
+        issue.id === issueId
+          ? {
+              ...issue,
+              status: 'resolved' as const,
+              resolvedAt: 'Just now',
+              resolutionNote: resolutionNote || 'Resolved by Bajaj CSR leadership',
+            }
+          : issue
+      )
+    );
+
+    const newEvt: LiveAuditEvent = {
+      id: `EVT-${Date.now()}`,
+      timestamp: 'Just now',
+      type: 'allocation_saved',
+      title: 'Partner Issue Marked Resolved',
+      detail: `Issue ${issueId} resolved. Note: ${resolutionNote || 'Resolved by Bajaj CSR leadership'}`,
+      actor: 'Suman Bajaj (Head of CSR)',
+      batchOrBeneficiary: 'CSR Executive Desk',
+    };
+    setAuditEvents(prev => [newEvt, ...prev]);
+  }, []);
+
   const value = useMemo(
     () => ({
       ngos,
@@ -3038,6 +3193,10 @@ export const ImpactStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
       portfolioBenchmarks,
       earmarkedReserveCr,
       earmarkReserveForGap,
+      ngoIssues,
+      openIssuesCount,
+      raiseNgoIssue,
+      resolveNgoIssue,
     }),
     [
       ngos,
@@ -3073,6 +3232,10 @@ export const ImpactStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
       portfolioBenchmarks,
       earmarkedReserveCr,
       earmarkReserveForGap,
+      ngoIssues,
+      openIssuesCount,
+      raiseNgoIssue,
+      resolveNgoIssue,
     ]
   );
 

@@ -61,7 +61,7 @@ const PILLARS: PillarNav[] = [
   { id: 'pulse',       label: 'Pulse',               icon: LayoutDashboard, defaultScreen: 'geographic' },
   { id: 'programmes',  label: 'Programmes',          icon: FolderKanban,    defaultScreen: 'income' },
   { id: 'ngo',         label: 'NGO Partners',        icon: Building2,       defaultScreen: 'ngo' },
-  { id: 'operations',  label: 'Operations & Audits', icon: ShieldCheck,     defaultScreen: 'operations' },
+  { id: 'operations',  label: 'NGO Health & Trust',  icon: ShieldCheck,     defaultScreen: 'operations' },
 ];
 
 const PROGRAMME_TABS: { id: ScreenId; label: string }[] = [

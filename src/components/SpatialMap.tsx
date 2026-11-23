@@ -546,9 +546,10 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
       }
 
       // Dynamic Asymmetric Padding: 416px right margin when desktop inspector is open, 48px when collapsed
+      // Increased bottom to 120 so Coimbatore (TN) sits cleanly above the bottom lens dock on initial desktop load
       const desktopPadding = isInspectorCollapsed
-        ? { top: 76, left: 48, right: 48, bottom: 92 }
-        : { top: 76, left: 48, right: 416, bottom: 92 };
+        ? { top: 76, left: 48, right: 48, bottom: 120 }
+        : { top: 76, left: 48, right: 416, bottom: 120 };
 
       // 2. 1-Click NGO Spotlight Zoom in Selected District (e.g. Smile frames Baramati + Shirur)
       if (selectedDistrictId && selectedNgoId) {
@@ -712,12 +713,12 @@ export const SpatialMap: React.FC<SpatialMapProps> = ({
         el.className = 'cursor-pointer transition-transform duration-100 hover:scale-110 active:scale-95';
         const isFlagged = props.auditStatus === 'flagged';
         el.innerHTML = `
-          <div class="px-2.5 py-1 rounded-xl border shadow-xs text-[11px] font-bold flex items-center gap-1.5 backdrop-blur-md ${
+          <div class="px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl border shadow-xs text-[10px] sm:text-[11px] font-bold flex items-center gap-1 sm:gap-1.5 backdrop-blur-md ${
             isFlagged
               ? 'bg-[#FCECEB]/95 text-[#B42318] border-[#B42318]/40 ring-2 ring-[#B42318]/20'
               : 'bg-[#FCFBF8]/95 text-[#1C1917] border-[#E5DFD3] hover:border-[#0B4A7D] ring-2 ring-[#0B4A7D]/10'
           }">
-            <span class="w-2 h-2 rounded-full ${isFlagged ? 'bg-[#B42318] animate-ping' : 'bg-[#0B4A7D]'}"></span>
+            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isFlagged ? 'bg-[#B42318] animate-ping' : 'bg-[#0B4A7D]'}"></span>
             <span>${props.name}</span>
             <span class="${isFlagged ? 'text-[#B42318]' : 'text-[#0B4A7D]'} font-mono">${Math.round(props.impactIndex)}</span>
           </div>
